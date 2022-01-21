@@ -6,6 +6,11 @@ use std::fmt;
 use std::process;
 
 const GENERATE_TABLE_OPERATION: &str = "generate_table";
+const MISSING_OPERATION_ARG: &str = "Missing operation argument";
+const MISSING_WORD_FILE_ARG: &str = "Missing argument word_file for generate_table operation!";
+
+const OPERATION_PARSE_ERROR_EXIT_CODE: u8 = 1;
+const GENERATE_TABLE_PARSE_ERROR: u8 = 2;
 
 pub enum AvailableOperations {
     GenerateTable,
@@ -26,6 +31,19 @@ pub struct GenerateTableOptions {
     pub word_file: String,
 }
 
+impl GenerateTableOptions {
+    pub fn new(mut args: Vec<String>) -> Result<GenerateTableOptions, (String, u8)> {
+        let word_file = match args.pop() {
+            Some(wf) => wf,
+            None => return Err((String::from(MISSING_WORD_FILE_ARG), GENERATE_TABLE_PARSE_ERROR))
+        };
+        Ok(GenerateTableOptions {
+            word_file: word_file
+        })
+    }
+}
+
+
 impl fmt::Display for GenerateTableOptions {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "word_file: {}", &self.word_file)
@@ -39,18 +57,18 @@ pub struct ProgramOptions {
 
 impl ProgramOptions {
 
-    pub fn new(mut args: Vec<String>) -> Result<ProgramOptions, String> {
+    pub fn new(mut args: Vec<String>) -> Result<ProgramOptions, (String, u8)> {
         let operation: AvailableOperations = match args.pop() {
             Some(operation_arg) => match &operation_arg[..] {
                 GENERATE_TABLE_OPERATION => AvailableOperations::GenerateTable,
-                other => return Err(format!("Unknown operation {}", other))
+                other => return Err((format!("Unknown operation {}", other), OPERATION_PARSE_ERROR_EXIT_CODE))
             },
-            None => return Err(String::from("Missing operation argument"))
+            None => return Err((String::from(MISSING_OPERATION_ARG), OPERATION_PARSE_ERROR_EXIT_CODE))
         };
     
         match operation {
             AvailableOperations::GenerateTable => {
-                let opts = parse_generate_table_options(args);
+                let opts = GenerateTableOptions::new(args)?;
                 let parsed_options = ProgramOptions {
                     operation: AvailableOperations::GenerateTable,
                     operation_options: opts
@@ -74,18 +92,6 @@ fn print_help() {
     print_available_operations();
 }
 
-fn parse_generate_table_options(mut args: Vec<String>) -> GenerateTableOptions {
-    let word_file = match args.pop() {
-        Some(wf) => wf,
-        None => {
-            eprintln!("Missing argument word_file for generate_table operation!");
-            process::exit(2);
-        }
-    };
-    GenerateTableOptions {
-        word_file: word_file
-    }
-}
 
 pub fn parse_cli() -> ProgramOptions {
     let mut cli_args: Vec<String> = env::args().collect();
@@ -96,8 +102,9 @@ pub fn parse_cli() -> ProgramOptions {
     cli_args.reverse();
     cli_args.pop();
     ProgramOptions::new(cli_args).unwrap_or_else(|err| {
-        eprintln!("{}", err);
+        let (err_msg, exit_code) = err;
+        eprintln!("{}", err_msg);
         print_help();
-        process::exit(1);
+        process::exit(exit_code.into());
     })
 }
