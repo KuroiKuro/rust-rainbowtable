@@ -1,5 +1,7 @@
 use std::env;
 
+mod cli;
+
 fn get_filename() -> String {
     let args: Vec<String> = env::args().collect();
     let filename_str = args.get(1);
@@ -12,7 +14,8 @@ fn get_filename() -> String {
 
 
 fn main() {
-    // Get file name from cli
-    let filename = get_filename();
-    println!("Filename = {}", filename);
+    let program_options = cli::parse_cli();
+    println!("Program options:");
+    println!("Operation: {}", program_options.operation);
+    println!("Options: {}", program_options.operation_options.word_file);
 }
