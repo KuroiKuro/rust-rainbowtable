@@ -88,12 +88,13 @@ fn parse_generate_table_options(mut args: Vec<String>) -> GenerateTableOptions {
 }
 
 pub fn parse_cli() -> ProgramOptions {
-    let cli_args: Vec<String> = env::args().collect();
+    let mut cli_args: Vec<String> = env::args().collect();
     if cli_args.len() <= 1 {
         print_help();
         process::exit(1);
     }
-
+    cli_args.reverse();
+    cli_args.pop();
     ProgramOptions::new(cli_args).unwrap_or_else(|err| {
         eprintln!("{}", err);
         print_help();
