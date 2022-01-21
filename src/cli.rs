@@ -5,7 +5,7 @@ use std::env;
 use std::fmt;
 use std::process;
 
-const GENERATE_TABLE_OPERATION: &str = "generate_table";
+const GENERATE_TABLE_OPERATION: String = String::from("generate_table");
 
 enum AvailableOperations {
     GenerateTable,
@@ -69,7 +69,6 @@ pub fn parse_cli() -> ProgramOptions {
     }
 
     cli_args.pop();
-    let gener
     let operation: AvailableOperations = match cli_args.pop() {
         Some(operation_arg) => match operation_arg {
             GENERATE_TABLE_OPERATION => AvailableOperations::GenerateTable,
