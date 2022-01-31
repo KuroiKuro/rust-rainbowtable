@@ -7,18 +7,19 @@ pub struct WordHash {
     pub hash: String,
 }
 
-pub fn hash_word(word: &str) -> String {
-    let hash = Sha256::new();
+fn hash_word(word: &str) -> String {
+    let mut hash = Sha256::new();
     hash.update(word);
     format!("{:x}", hash.finalize())
 }
 
 pub fn hash_word_vec(word_vec: Vec<String>) -> Vec<WordHash> {
-    let hash_vec: Vec<WordHash> = Vec::new();
+    let mut hash_vec: Vec<WordHash> = Vec::new();
     for word in word_vec {
+        let hash = hash_word(&word);
         let word_hash = WordHash {
             word: word,
-            hash: hash_word(&word)
+            hash: hash
         };
         hash_vec.push(word_hash);
     }
@@ -26,7 +27,7 @@ pub fn hash_word_vec(word_vec: Vec<String>) -> Vec<WordHash> {
 }
 
 fn generate_hash_str(word_hash: WordHash) -> String {
-    let hash_str = String::from(word_hash.word);
+    let mut hash_str = String::from(word_hash.word);
     hash_str.push_str(HASH_DELIMITER);
     hash_str.push_str(&format!("{}", word_hash.hash));
     hash_str
@@ -34,7 +35,7 @@ fn generate_hash_str(word_hash: WordHash) -> String {
 
 pub fn generate_serialized_hashes(word_vec: Vec<String>) -> Vec<String> {
     let word_hash_vec = hash_word_vec(word_vec);
-    let serialized_hashes: Vec<String> = Vec::new();
+    let mut serialized_hashes: Vec<String> = Vec::new();
     for word_hash in word_hash_vec {
         let hash_str = generate_hash_str(word_hash);
         serialized_hashes.push(hash_str);
