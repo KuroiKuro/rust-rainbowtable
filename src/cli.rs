@@ -8,6 +8,7 @@ use std::process;
 const GENERATE_TABLE_OPERATION: &str = "generate_table";
 const MISSING_OPERATION_ARG: &str = "Missing operation argument";
 const MISSING_WORD_FILE_ARG: &str = "Missing argument word_file for generate_table operation!";
+const MISSING_RAINBOW_TABLE_FILE_ARG: &str = "Missing argument rainbow_table_file for generate_table operation!";
 
 const OPERATION_PARSE_ERROR_EXIT_CODE: u8 = 1;
 const GENERATE_TABLE_PARSE_ERROR: u8 = 2;
@@ -29,16 +30,23 @@ impl fmt::Display for AvailableOperations {
 
 pub struct GenerateTableOptions {
     pub word_file_path: String,
+    pub rainbow_table_file_path: String,
 }
 
 impl GenerateTableOptions {
     pub fn new(mut args: Vec<String>) -> Result<GenerateTableOptions, (String, u8)> {
-        let word_file = match args.pop() {
+        let word_file_path = match args.pop() {
             Some(wf) => wf,
             None => return Err((String::from(MISSING_WORD_FILE_ARG), GENERATE_TABLE_PARSE_ERROR))
         };
+
+        let rainbow_table_file_path = match args.pop() {
+            Some(wf) => wf,
+            None => return Err((String::from(MISSING_RAINBOW_TABLE_FILE_ARG), GENERATE_TABLE_PARSE_ERROR))
+        };
         Ok(GenerateTableOptions {
-            word_file_path: word_file
+            word_file_path: word_file_path,
+            rainbow_table_file_path: rainbow_table_file_path
         })
     }
 }
@@ -46,7 +54,7 @@ impl GenerateTableOptions {
 
 impl fmt::Display for GenerateTableOptions {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "word_file: {}", &self.word_file_path)
+        writeln!(f, "word_file: {}, rainbow_table_file: {}", &self.word_file_path, &self.rainbow_table_file_path)
     }
 }
 
