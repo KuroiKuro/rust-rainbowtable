@@ -1,4 +1,7 @@
 mod cli;
+mod reader;
+mod hasher;
+mod operations;
 
 
 fn main() {

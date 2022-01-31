@@ -1,6 +1,6 @@
 use sha2::{Sha256, Digest};
 
-const HASH_DELIMITER: &str = ":";
+pub const HASH_DELIMITER: &str = ":";
 
 pub struct WordHash {
     pub word: String,
@@ -28,7 +28,7 @@ pub fn hash_word_vec(word_vec: Vec<String>) -> Vec<WordHash> {
 fn generate_hash_str(word_hash: WordHash) -> String {
     let hash_str = String::from(word_hash.word);
     hash_str.push_str(HASH_DELIMITER);
-    hash_str.push_str(format!("{}", word_hash.hash));
+    hash_str.push_str(&format!("{}", word_hash.hash));
     hash_str
 }
 
