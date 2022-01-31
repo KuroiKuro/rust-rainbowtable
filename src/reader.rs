@@ -12,7 +12,7 @@ pub fn read_words(fpath: &str) -> Result<Vec<String>, String> {
     let word_file = match fs::File::open(fpath) {
         Ok(f) => f,
         Err(error) => {
-            let mut error_base = String::from("Error opening word_file: ");
+            let mut error_base = String::from("Error opening word file for reading: ");
             match error.kind() {
             ErrorKind::NotFound => error_base.push_str("File not found"),
             ErrorKind::PermissionDenied => error_base.push_str("Permission denied"),
