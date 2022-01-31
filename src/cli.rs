@@ -28,7 +28,7 @@ impl fmt::Display for AvailableOperations {
 
 
 pub struct GenerateTableOptions {
-    pub word_file: String,
+    pub word_file_path: String,
 }
 
 impl GenerateTableOptions {
@@ -38,7 +38,7 @@ impl GenerateTableOptions {
             None => return Err((String::from(MISSING_WORD_FILE_ARG), GENERATE_TABLE_PARSE_ERROR))
         };
         Ok(GenerateTableOptions {
-            word_file: word_file
+            word_file_path: word_file
         })
     }
 }
@@ -46,7 +46,7 @@ impl GenerateTableOptions {
 
 impl fmt::Display for GenerateTableOptions {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "word_file: {}", &self.word_file)
+        writeln!(f, "word_file: {}", &self.word_file_path)
     }
 }
 
