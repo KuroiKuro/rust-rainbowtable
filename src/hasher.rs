@@ -13,7 +13,7 @@ fn hash_word(word: &str) -> String {
     format!("{:x}", hash.finalize())
 }
 
-pub fn hash_word_vec(word_vec: Vec<String>) -> Vec<WordHash> {
+fn hash_word_vec(word_vec: Vec<String>) -> Vec<WordHash> {
     let mut hash_vec: Vec<WordHash> = Vec::new();
     for word in word_vec {
         let hash = hash_word(&word);

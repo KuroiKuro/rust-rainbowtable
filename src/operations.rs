@@ -3,7 +3,7 @@ pub mod generate_table {
     use std::io::Write; 
     use crate::{cli, reader, hasher};
 
-    fn write_hashes_to_file(rainbow_table_file_path: &str, hashed_words: Vec<hasher::WordHash>) {
+    fn write_hashes_to_file(rainbow_table_file_path: &str, serialized_hashes: Vec<String>) {
         // Check if file exists, and if it does, prompt to overwrite
         // TODO: Continue after finishing the rest of the function
         // let path_exists = path::Path::new(table_file_path).exists();
@@ -21,10 +21,8 @@ pub mod generate_table {
         };
 
         let mut content = String::new();
-        for hash_struct in hashed_words {
-            let delim = hasher::HASH_DELIMITER;
-            let line = format!("{}{}{}\n", hash_struct.word, delim, hash_struct.hash);
-            content.push_str(&line);
+        for hash in serialized_hashes {
+            content.push_str(&format!("{}\n", &hash));
         }
         match file.write_all(content.as_bytes()) {
             Err(e) => {
@@ -46,12 +44,11 @@ pub mod generate_table {
             }
         };
 
-        // Hash vector of words
         println!("Generating words...");
-        let hashed_words = hasher::hash_word_vec(words);
-        println!("Generated {} words", hashed_words.len());
+        let serialized_hashes = hasher::generate_serialized_hashes(words);
+        println!("Generated {} words", serialized_hashes.len());
         println!("Writing generated words to {}", rainbow_table_file_path);
-        write_hashes_to_file(rainbow_table_file_path, hashed_words);
+        write_hashes_to_file(rainbow_table_file_path, serialized_hashes);
         println!("Write complete!");
     }
 }
