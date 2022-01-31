@@ -1,7 +1,7 @@
 use std::fs;
 use std::io::{ErrorKind, BufReader, BufRead, Error};
 
-const FILE_OPERATION_ERROR: u8 = 10;
+pub const FILE_OPERATION_ERROR: u8 = 10;
 
 pub fn read_words(fpath: &str) -> Result<Vec<String>, String> {
     /*
