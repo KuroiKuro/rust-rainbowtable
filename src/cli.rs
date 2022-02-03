@@ -9,9 +9,11 @@ const GENERATE_TABLE_OPERATION: &str = "generate_table";
 const MISSING_OPERATION_ARG: &str = "Missing operation argument";
 const MISSING_WORD_FILE_ARG: &str = "Missing argument word_file for generate_table operation!";
 const MISSING_RAINBOW_TABLE_FILE_ARG: &str = "Missing argument rainbow_table_file for generate_table operation!";
+const MISSING_HASH_ARG: &str = "Missing hash argument";
 
 const OPERATION_PARSE_ERROR_EXIT_CODE: u8 = 1;
 const GENERATE_TABLE_PARSE_ERROR: u8 = 2;
+const CRACK_PARSE_ERROR: u8 = 3;
 
 pub enum AvailableOperations {
     GenerateTable,
@@ -57,6 +59,38 @@ impl fmt::Display for GenerateTableOptions {
         writeln!(f, "word_file: {}, rainbow_table_file: {}", &self.word_file_path, &self.rainbow_table_file_path)
     }
 }
+
+
+pub struct CrackOptions {
+    pub hash: String,
+    pub rainbow_table_file_path: String,
+}
+
+impl CrackOptions {
+    fn new(mut args: Vec<String>) -> Result<CrackOptions, (String, u8)> {
+        let hash = match args.pop() {
+            Some(hash) => hash,
+            None => return Err((String::from(MISSING_HASH_ARG), CRACK_PARSE_ERROR)),
+        };
+
+        let rainbow_table_file_path = match args.pop() {
+            Some(path) => path,
+            None => return Err((String::from(MISSING_RAINBOW_TABLE_FILE_ARG), CRACK_PARSE_ERROR)),
+        };
+        Ok(CrackOptions {
+            hash: hash,
+            rainbow_table_file_path: rainbow_table_file_path,
+        })
+    }
+}
+
+
+impl fmt::Display for CrackOptions {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "hash: {}, rainbow_table_file_path: {}", self.hash, self.rainbow_table_file_path)
+    }
+}
+
 
 pub struct ProgramOptions {
     pub operation: AvailableOperations,
