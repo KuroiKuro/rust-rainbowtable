@@ -1,16 +1,27 @@
 pub mod generate_table {
-    use std::{fs, process};
-    use std::io::Write; 
+    use std::{fs, process, path};
+    use std::io::{stdin, Write}; 
     use crate::{cli, reader, hasher};
 
     fn write_hashes_to_file(rainbow_table_file_path: &str, serialized_hashes: Vec<String>) {
         // Check if file exists, and if it does, prompt to overwrite
-        // TODO: Continue after finishing the rest of the function
-        // let path_exists = path::Path::new(table_file_path).exists();
-        // if path_exists {
-        //     eprintln!("{} already exists. Overwrite? (y/n)", table_file_path);
-            
-        // }
+        let path_exists = path::Path::new(rainbow_table_file_path).exists();
+        if path_exists {
+            eprintln!("{} already exists. Overwrite? (Y/n)", rainbow_table_file_path);
+            let mut buf = String::new();
+            match stdin().read_line(&mut buf) {
+                Err(_) => {
+                    eprintln!("Error while reading input!");
+                    process::exit(90);
+                },
+                _ => ()
+            };
+            let first_char: char = buf.as_bytes()[0] as char;
+            if first_char != 'y' && first_char != 'Y' && first_char != '\n' {
+                process::exit(0);
+            }
+        }
+
         // Create a new file, and write to it
         let mut file = match fs::File::create(rainbow_table_file_path) {
             Ok(f) => f,
