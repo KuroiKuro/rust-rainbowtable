@@ -6,6 +6,7 @@ use std::fmt;
 use std::process;
 
 const GENERATE_TABLE_OPERATION: &str = "generate_table";
+const CRACK_HASH_OPEATION: &str = "crack_hash";
 const CRACK_HASH_OPERATION: &str = "crack_hash";
 const MISSING_OPERATION_ARG: &str = "Missing operation argument";
 const MISSING_WORD_FILE_ARG: &str = "Missing argument word_file for generate_table operation!";
@@ -171,7 +172,7 @@ impl ProgramOptions {
 
 fn print_available_operations() {
     eprintln!("Available Operations:");
-    eprintln!("{}", GENERATE_TABLE_OPERATION);
+    eprintln!("{}\n{}", GENERATE_TABLE_OPERATION, CRACK_HASH_OPEATION);
 }
 
 fn print_help() {
