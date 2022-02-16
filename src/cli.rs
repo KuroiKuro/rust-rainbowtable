@@ -108,10 +108,23 @@ pub struct ProgramOptions {
     // rainbow_table_file_path used for both generate_table and crack
     pub rainbow_table_file_path: String,
     // Options for generate_table
-    pub word_file_path: Option<String>,
-    // Options for crack
-    pub hash: Option<String>,
+    pub extra_args: Vec<String>,
 }
+
+// impl fmt::Display for ProgramOptions {
+//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+//         let none = String::from("None");
+//         let word_file_path = match &self.word_file_path {
+//             Some(w) => w,
+//             None => &none,
+//         };
+//         let hash = match &self.hash {
+//             Some(w) => w,
+//             None => &none,
+//         };
+//         writeln!(f, "operation: {}, rainbow_table_file_path: {}, word_file_path: {}, hash: {}", self.operation, self.rainbow_table_file_path, word_file_path, hash)
+//     }
+// }
 
 
 impl ProgramOptions {
@@ -134,13 +147,12 @@ impl ProgramOptions {
         Ok(ProgramOptions {
             operation: operation,
             rainbow_table_file_path: rainbow_table_file_path,
-            word_file_path: None,
-            hash: None,
+            extra_args: args,
         })
     }
 
-    pub fn get_generate_table_options(self) -> Result<GenerateTableOptions, (String, u8)> {
-        let word_file_path = match self.word_file_path {
+    pub fn get_generate_table_options(&mut self) -> Result<GenerateTableOptions, (String, u8)> {
+        let word_file_path = match self.extra_args.pop() {
             Some(path) => path,
             None => {
                 return Err((String::from(MISSING_WORD_FILE_ARG), GENERATE_TABLE_PARSE_ERROR_EXIT_CODE));
@@ -148,14 +160,14 @@ impl ProgramOptions {
         };
         Ok(
             GenerateTableOptions {
-                rainbow_table_file_path: self.rainbow_table_file_path,
+                rainbow_table_file_path: String::from(&self.rainbow_table_file_path),
                 word_file_path: word_file_path,
             }
         )
     }
 
-    pub fn get_crack_hash_options(self) -> Result<CrackHashOptions, (String, u8)> {
-        let hash = match self.hash {
+    pub fn get_crack_hash_options(&mut self) -> Result<CrackHashOptions, (String, u8)> {
+        let hash = match self.extra_args.pop() {
             Some(hash) => hash,
             None => {
                 return Err((String::from(MISSING_HASH_ARG), CRACK_HASH_PARSE_ERROR_EXIT_CODE));
@@ -163,7 +175,7 @@ impl ProgramOptions {
         };
         Ok(
             CrackHashOptions {
-                rainbow_table_file_path: self.rainbow_table_file_path,
+                rainbow_table_file_path: String::from(&self.rainbow_table_file_path),
                 hash: hash,
             }
         )

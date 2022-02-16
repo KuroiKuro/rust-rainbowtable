@@ -2,7 +2,7 @@ use crate::cli::{ProgramOptions, AvailableOperations};
 use std::process;
 
 
-pub fn select_run(program_options: ProgramOptions) {
+pub fn select_run(mut program_options: ProgramOptions) {
     match program_options.operation {
         AvailableOperations::GenerateTable => {
             let gen_table_opts = program_options.get_generate_table_options();
@@ -14,9 +14,14 @@ pub fn select_run(program_options: ProgramOptions) {
                 }
             }
         },
-        _ => {
-            eprintln!("Not implemented");
-            process::exit(50);
+        AvailableOperations::CrackHash => {
+            match program_options.get_crack_hash_options() {
+                Ok(opts) => crack_hash::run(opts),
+                Err(e) => {
+                    eprintln!("{}", e.0);
+                    process::exit(e.1.into());
+                }
+            };
         }
     }
 }
@@ -84,5 +89,42 @@ pub mod generate_table {
         println!("Writing generated words to {}", rainbow_table_file_path);
         write_hashes_to_file(rainbow_table_file_path, serialized_hashes);
         println!("Write complete!");
+    }
+}
+
+mod crack_hash {
+    use std::process;
+    use crate::{cli, hasher, reader};
+
+    const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: u8 = 4;
+
+    fn create_rainbow_table(words: Vec<String>) -> Vec<hasher::WordHash> {
+        match hasher::deserialize_hashes(words) {
+            Ok(hashes) => hashes,
+            Err(e) => {
+                eprintln!("{}", e);
+                process::exit(CRACK_HASH_RUNTIME_ERROR_EXIT_CODE.into());
+            }
+        }
+    }
+
+    pub fn run(crack_hash_options: cli::CrackHashOptions) {
+        // Read words from file
+        let rainbow_table_file_path = crack_hash_options.rainbow_table_file_path;
+        let read_words = match reader::read_words(&rainbow_table_file_path) {
+            Ok(result) => result,
+            Err(e) => {
+                eprintln!("{}", e);
+                process::exit(reader::FILE_OPERATION_ERROR.into());
+            }
+        };
+        let rainbow_table = create_rainbow_table(read_words);
+        for wordhash in rainbow_table {
+            if wordhash.hash == crack_hash_options.hash {
+                println!("Hash Cracked! The word is: {}", wordhash.word);
+                return;
+            }
+        }
+        println!("Sorry, hash not found in the rainbow table!");
     }
 }
