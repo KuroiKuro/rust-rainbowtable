@@ -26,7 +26,7 @@ pub fn select_run(mut program_options: ProgramOptions) {
     }
 }
 
-pub mod generate_table {
+mod generate_table {
     use std::{fs, process, path};
     use std::io::{stdin, Write}; 
     use crate::{cli, reader, hasher};
