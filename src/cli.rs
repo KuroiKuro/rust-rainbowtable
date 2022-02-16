@@ -15,8 +15,8 @@ const MISSING_HASH_ARG: &str = "Missing hash argument";
 
 const OPERATION_PARSE_ERROR_EXIT_CODE: u8 = 1;
 const ARGUMENT_PARSE_ERROR_EXIT_CODE: u8 = 2;
-const GENERATE_TABLE_PARSE_ERROR: u8 = 2;
-const CRACK_HASH_PARSE_ERROR: u8 = 3;
+const GENERATE_TABLE_PARSE_ERROR_EXIT_CODE: u8 = 2;
+const CRACK_HASH_PARSE_ERROR_EXIT_CODE: u8 = 3;
 
 /*
     CLI ORDER:
@@ -49,12 +49,12 @@ impl GenerateTableOptions {
     pub fn new(mut args: Vec<String>) -> Result<GenerateTableOptions, (String, u8)> {
         let word_file_path = match args.pop() {
             Some(wf) => wf,
-            None => return Err((String::from(MISSING_WORD_FILE_ARG), GENERATE_TABLE_PARSE_ERROR))
+            None => return Err((String::from(MISSING_WORD_FILE_ARG), GENERATE_TABLE_PARSE_ERROR_EXIT_CODE))
         };
 
         let rainbow_table_file_path = match args.pop() {
             Some(wf) => wf,
-            None => return Err((String::from(MISSING_RAINBOW_TABLE_FILE_ARG), GENERATE_TABLE_PARSE_ERROR))
+            None => return Err((String::from(MISSING_RAINBOW_TABLE_FILE_ARG), GENERATE_TABLE_PARSE_ERROR_EXIT_CODE))
         };
         Ok(GenerateTableOptions {
             word_file_path: word_file_path,
@@ -81,12 +81,12 @@ impl CrackHashOptions {
     fn new(mut args: Vec<String>) -> Result<CrackHashOptions, (String, u8)> {
         let hash = match args.pop() {
             Some(hash) => hash,
-            None => return Err((String::from(MISSING_HASH_ARG), CRACK_HASH_PARSE_ERROR)),
+            None => return Err((String::from(MISSING_HASH_ARG), CRACK_HASH_PARSE_ERROR_EXIT_CODE)),
         };
 
         let rainbow_table_file_path = match args.pop() {
             Some(path) => path,
-            None => return Err((String::from(MISSING_RAINBOW_TABLE_FILE_ARG), CRACK_HASH_PARSE_ERROR)),
+            None => return Err((String::from(MISSING_RAINBOW_TABLE_FILE_ARG), CRACK_HASH_PARSE_ERROR_EXIT_CODE)),
         };
         Ok(CrackHashOptions {
             hash: hash,
@@ -143,7 +143,7 @@ impl ProgramOptions {
         let word_file_path = match self.word_file_path {
             Some(path) => path,
             None => {
-                return Err((String::from(MISSING_WORD_FILE_ARG), GENERATE_TABLE_PARSE_ERROR));
+                return Err((String::from(MISSING_WORD_FILE_ARG), GENERATE_TABLE_PARSE_ERROR_EXIT_CODE));
             }
         };
         Ok(
@@ -158,7 +158,7 @@ impl ProgramOptions {
         let hash = match self.hash {
             Some(hash) => hash,
             None => {
-                return Err((String::from(MISSING_HASH_ARG), CRACK_HASH_PARSE_ERROR));
+                return Err((String::from(MISSING_HASH_ARG), CRACK_HASH_PARSE_ERROR_EXIT_CODE));
             }
         };
         Ok(
