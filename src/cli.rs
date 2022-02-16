@@ -33,6 +33,7 @@ impl fmt::Display for AvailableOperations {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let operation_type = match &self {
             AvailableOperations::GenerateTable => GENERATE_TABLE_OPERATION,
+            AvailableOperations::CrackHash => CRACK_HASH_OPEATION,
         };
         writeln!(f, "{}", operation_type)
     }

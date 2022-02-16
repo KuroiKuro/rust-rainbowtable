@@ -8,6 +8,5 @@ fn main() {
     let program_options = cli::parse_cli();
     println!("Program options:");
     println!("Operation: {}", program_options.operation);
-
-    operations::generate_table::run(program_options);
+    operations::select_run(program_options);
 }

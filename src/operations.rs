@@ -1,3 +1,26 @@
+use crate::cli::{ProgramOptions, AvailableOperations};
+use std::process;
+
+
+pub fn select_run(program_options: ProgramOptions) {
+    match program_options.operation {
+        AvailableOperations::GenerateTable => {
+            let gen_table_opts = program_options.get_generate_table_options();
+            match gen_table_opts {
+                Ok(opts) => generate_table::run(opts),
+                Err(e) => {
+                    eprintln!("{}", e.0);
+                    process::exit(e.1.into());
+                }
+            }
+        },
+        _ => {
+            eprintln!("Not implemented");
+            process::exit(50);
+        }
+    }
+}
+
 pub mod generate_table {
     use std::{fs, process, path};
     use std::io::{stdin, Write}; 
@@ -44,9 +67,9 @@ pub mod generate_table {
         }
     }
 
-    pub fn run(program_options: cli::ProgramOptions) {
-        let word_file_path = &program_options.operation_options.word_file_path;
-        let rainbow_table_file_path = &program_options.operation_options.rainbow_table_file_path;
+    pub fn run(generate_table_options: cli::GenerateTableOptions) {
+        let word_file_path = &generate_table_options.word_file_path;
+        let rainbow_table_file_path = &generate_table_options.rainbow_table_file_path;
         let words = match reader::read_words(word_file_path) {
             Ok(result) => result,
             Err(e) => {
