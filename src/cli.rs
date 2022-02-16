@@ -45,25 +45,6 @@ pub struct GenerateTableOptions {
     pub rainbow_table_file_path: String,
 }
 
-impl GenerateTableOptions {
-    pub fn new(mut args: Vec<String>) -> Result<GenerateTableOptions, (String, u8)> {
-        let word_file_path = match args.pop() {
-            Some(wf) => wf,
-            None => return Err((String::from(MISSING_WORD_FILE_ARG), GENERATE_TABLE_PARSE_ERROR_EXIT_CODE))
-        };
-
-        let rainbow_table_file_path = match args.pop() {
-            Some(wf) => wf,
-            None => return Err((String::from(MISSING_RAINBOW_TABLE_FILE_ARG), GENERATE_TABLE_PARSE_ERROR_EXIT_CODE))
-        };
-        Ok(GenerateTableOptions {
-            word_file_path: word_file_path,
-            
-            rainbow_table_file_path: rainbow_table_file_path
-        })
-    }
-}
-
 
 impl fmt::Display for GenerateTableOptions {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -75,24 +56,6 @@ impl fmt::Display for GenerateTableOptions {
 pub struct CrackHashOptions {
     pub hash: String,
     pub rainbow_table_file_path: String,
-}
-
-impl CrackHashOptions {
-    fn new(mut args: Vec<String>) -> Result<CrackHashOptions, (String, u8)> {
-        let hash = match args.pop() {
-            Some(hash) => hash,
-            None => return Err((String::from(MISSING_HASH_ARG), CRACK_HASH_PARSE_ERROR_EXIT_CODE)),
-        };
-
-        let rainbow_table_file_path = match args.pop() {
-            Some(path) => path,
-            None => return Err((String::from(MISSING_RAINBOW_TABLE_FILE_ARG), CRACK_HASH_PARSE_ERROR_EXIT_CODE)),
-        };
-        Ok(CrackHashOptions {
-            hash: hash,
-            rainbow_table_file_path: rainbow_table_file_path,
-        })
-    }
 }
 
 
