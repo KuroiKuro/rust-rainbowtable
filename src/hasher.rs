@@ -33,6 +33,22 @@ fn generate_hash_str(word_hash: WordHash) -> String {
     hash_str
 }
 
+fn deserialize_single_hash(serialized_hash: String) -> Result<WordHash, String> {
+    let split_vec = serialized_hash.split(HASH_DELIMITER).collect::<Vec<&str>>();
+    if split_vec.len() != 2 {
+        return Err(
+            format!("Invalid serialized hash, got: {}", serialized_hash)
+        );
+    }
+    // Improvement for next time: validate that hash is a valid hash
+    Ok(
+        WordHash {
+            word: String::from(split_vec[0]),
+            hash: String::from(split_vec[1]),
+        }
+    )
+}
+
 pub fn generate_serialized_hashes(word_vec: Vec<String>) -> Vec<String> {
     let word_hash_vec = hash_word_vec(word_vec);
     let mut serialized_hashes: Vec<String> = Vec::new();
@@ -41,4 +57,12 @@ pub fn generate_serialized_hashes(word_vec: Vec<String>) -> Vec<String> {
         serialized_hashes.push(hash_str);
     }
     serialized_hashes
+}
+
+pub fn deserialize_hashes(serialized_hashes: Vec<String>) -> Result<Vec<WordHash>, String> {
+    let mut deserialized_hashes: Vec<WordHash> = Vec::new();
+    for serialized_hash in serialized_hashes {
+        deserialized_hashes.push(deserialize_single_hash(serialized_hash)?);
+    }
+    Ok(deserialized_hashes)
 }
