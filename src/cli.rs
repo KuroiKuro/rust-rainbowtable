@@ -74,22 +74,6 @@ pub struct ProgramOptions {
     pub extra_args: Vec<String>,
 }
 
-// impl fmt::Display for ProgramOptions {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         let none = String::from("None");
-//         let word_file_path = match &self.word_file_path {
-//             Some(w) => w,
-//             None => &none,
-//         };
-//         let hash = match &self.hash {
-//             Some(w) => w,
-//             None => &none,
-//         };
-//         writeln!(f, "operation: {}, rainbow_table_file_path: {}, word_file_path: {}, hash: {}", self.operation, self.rainbow_table_file_path, word_file_path, hash)
-//     }
-// }
-
-
 impl ProgramOptions {
 
     pub fn new(mut args: Vec<String>) -> Result<ProgramOptions, (String, u8)> {
