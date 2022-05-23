@@ -4,6 +4,7 @@
 use std::env;
 use std::fmt;
 use std::process;
+use clap::{Parser, Subcommand};
 
 const GENERATE_TABLE_OPERATION: &str = "generate_table";
 const CRACK_HASH_OPEATION: &str = "crack_hash";
@@ -23,6 +24,28 @@ const CRACK_HASH_PARSE_ERROR_EXIT_CODE: u8 = 3;
     Generate Table: <program> generate_table <rainbow_table_file_path> <word_file_path>
     Crack Hash: <program> crack_hash <rainbow_table_file_path> <hash>
 */
+
+#[derive(Subcommand)]
+pub enum Commands {
+    GenerateTable {
+        #[clap(short = 'r', long = "rainbow-table-file")]
+        rainbow_table_file_path: Option<String>,
+        #[clap(short = 'w', long = "word-file")]
+        word_file_path: Option<String>,
+    },
+    CrackHash {
+        #[clap(short = 'r', long = "rainbow-table-file")]
+        rainbow_table_file_path: Option<String>,
+        #[clap(short = 'H', long = "hash")]
+        hash: Option<String>,
+    }
+}
+
+#[derive(Parser)]
+pub struct Cli {
+    #[clap(subcommand)]
+    pub command: Commands
+}
 
 pub enum AvailableOperations {
     GenerateTable,
