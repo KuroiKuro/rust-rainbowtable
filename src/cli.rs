@@ -25,18 +25,22 @@ const CRACK_HASH_PARSE_ERROR_EXIT_CODE: u8 = 3;
     Crack Hash: <program> crack_hash <rainbow_table_file_path> <hash>
 */
 
+const RAINBOW_TABLE_ARG_HELP: &str = "Path to the rainbow table file";
+const WORD_FILE_ARG_HELP: &str = "Path to the word file";
+const HASH_ARG_HELP: &str = "Hash to crack";
+
 #[derive(Subcommand)]
 pub enum Commands {
     GenerateTable {
-        #[clap(short = 'r', long = "rainbow-table-file")]
+        #[clap(short = 'r', long = "rainbow-table-file", help = RAINBOW_TABLE_ARG_HELP)]
         rainbow_table_file_path: Option<String>,
-        #[clap(short = 'w', long = "word-file")]
+        #[clap(short = 'w', long = "word-file", help = WORD_FILE_ARG_HELP)]
         word_file_path: Option<String>,
     },
     CrackHash {
-        #[clap(short = 'r', long = "rainbow-table-file")]
+        #[clap(short = 'r', long = "rainbow-table-file", help = RAINBOW_TABLE_ARG_HELP)]
         rainbow_table_file_path: Option<String>,
-        #[clap(short = 'H', long = "hash")]
+        #[clap(short = 'H', long = "hash", help = HASH_ARG_HELP)]
         hash: Option<String>,
     }
 }
