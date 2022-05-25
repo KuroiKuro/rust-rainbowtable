@@ -1,29 +1,8 @@
 /*
     This module handles the parsing of CLI options.
 */
-use std::env;
 use std::fmt;
-use std::process;
 use clap::{Parser, Subcommand};
-
-const GENERATE_TABLE_OPERATION: &str = "generate_table";
-const CRACK_HASH_OPEATION: &str = "crack_hash";
-const CRACK_HASH_OPERATION: &str = "crack_hash";
-const MISSING_OPERATION_ARG: &str = "Missing operation argument";
-const MISSING_WORD_FILE_ARG: &str = "Missing argument word_file for generate_table operation!";
-const MISSING_RAINBOW_TABLE_FILE_ARG: &str = "Missing argument rainbow_table_file for generate_table operation!";
-const MISSING_HASH_ARG: &str = "Missing hash argument";
-
-const OPERATION_PARSE_ERROR_EXIT_CODE: u8 = 1;
-const ARGUMENT_PARSE_ERROR_EXIT_CODE: u8 = 2;
-const GENERATE_TABLE_PARSE_ERROR_EXIT_CODE: u8 = 2;
-const CRACK_HASH_PARSE_ERROR_EXIT_CODE: u8 = 3;
-
-/*
-    CLI ORDER:
-    Generate Table: <program> generate_table <rainbow_table_file_path> <word_file_path>
-    Crack Hash: <program> crack_hash <rainbow_table_file_path> <hash>
-*/
 
 const RAINBOW_TABLE_ARG_HELP: &str = "Path to the rainbow table file";
 const WORD_FILE_ARG_HELP: &str = "Path to the word file";
@@ -33,15 +12,15 @@ const HASH_ARG_HELP: &str = "Hash to crack";
 pub enum Commands {
     GenerateTable {
         #[clap(short = 'r', long = "rainbow-table-file", help = RAINBOW_TABLE_ARG_HELP)]
-        rainbow_table_file_path: Option<String>,
+        rainbow_table_file_path: String,
         #[clap(short = 'w', long = "word-file", help = WORD_FILE_ARG_HELP)]
-        word_file_path: Option<String>,
+        word_file_path: String,
     },
     CrackHash {
         #[clap(short = 'r', long = "rainbow-table-file", help = RAINBOW_TABLE_ARG_HELP)]
-        rainbow_table_file_path: Option<String>,
+        rainbow_table_file_path: String,
         #[clap(short = 'H', long = "hash", help = HASH_ARG_HELP)]
-        hash: Option<String>,
+        hash: String,
     }
 }
 
@@ -49,21 +28,6 @@ pub enum Commands {
 pub struct Cli {
     #[clap(subcommand)]
     pub command: Commands
-}
-
-pub enum AvailableOperations {
-    GenerateTable,
-    CrackHash,
-}
-
-impl fmt::Display for AvailableOperations {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let operation_type = match &self {
-            AvailableOperations::GenerateTable => GENERATE_TABLE_OPERATION,
-            AvailableOperations::CrackHash => CRACK_HASH_OPEATION,
-        };
-        writeln!(f, "{}", operation_type)
-    }
 }
 
 
@@ -94,95 +58,39 @@ impl fmt::Display for CrackHashOptions {
 
 
 pub struct ProgramOptions {
-    pub operation: AvailableOperations,
-    // rainbow_table_file_path used for both generate_table and crack
-    pub rainbow_table_file_path: String,
-    // Options for generate_table
-    pub extra_args: Vec<String>,
+    pub operation: Commands,
 }
 
 impl ProgramOptions {
 
-    pub fn new(mut args: Vec<String>) -> Result<ProgramOptions, (String, u8)> {
-        let operation: AvailableOperations = match args.pop() {
-            Some(operation_arg) => match &operation_arg[..] {
-                GENERATE_TABLE_OPERATION => AvailableOperations::GenerateTable,
-                CRACK_HASH_OPERATION => AvailableOperations::CrackHash,
-                other => return Err((format!("Unknown operation {}", other), OPERATION_PARSE_ERROR_EXIT_CODE))
+    pub fn new() -> ProgramOptions {
+        let args = Cli::parse();
+        ProgramOptions {
+            operation: args.command
+        }
+    }
+
+    pub fn get_generate_table_options(&mut self) -> Option<GenerateTableOptions> {
+        match &self.operation {
+            Commands::GenerateTable { rainbow_table_file_path, word_file_path } => {
+                Some(GenerateTableOptions {
+                    rainbow_table_file_path: rainbow_table_file_path.to_string(),
+                    word_file_path: word_file_path.to_string(),
+                })
             },
-            None => return Err((String::from(MISSING_OPERATION_ARG), OPERATION_PARSE_ERROR_EXIT_CODE))
-        };
-        // Obtain first cli arg after operation: rainbow table file path
-        // since it is required for both generate_table and crack_hash
-        let rainbow_table_file_path = match args.pop() {
-            Some(path) => path,
-            None => return Err((String::from(MISSING_RAINBOW_TABLE_FILE_ARG), ARGUMENT_PARSE_ERROR_EXIT_CODE)),
-        };
-        Ok(ProgramOptions {
-            operation: operation,
-            rainbow_table_file_path: rainbow_table_file_path,
-            extra_args: args,
-        })
+            _ => None
+        }
     }
 
-    pub fn get_generate_table_options(&mut self) -> Result<GenerateTableOptions, (String, u8)> {
-        let word_file_path = match self.extra_args.pop() {
-            Some(path) => path,
-            None => {
-                return Err((String::from(MISSING_WORD_FILE_ARG), GENERATE_TABLE_PARSE_ERROR_EXIT_CODE));
-            }
-        };
-        Ok(
-            GenerateTableOptions {
-                rainbow_table_file_path: String::from(&self.rainbow_table_file_path),
-                word_file_path: word_file_path,
-            }
-        )
+    pub fn get_crack_hash_options(&mut self) -> Option<CrackHashOptions> {
+        match &self.operation {
+            Commands::CrackHash { rainbow_table_file_path, hash } => {
+                Some(CrackHashOptions {
+                    rainbow_table_file_path: rainbow_table_file_path.to_string(),
+                    hash: hash.to_string(),
+                })
+            },
+            _ => None
+        }
     }
-
-    pub fn get_crack_hash_options(&mut self) -> Result<CrackHashOptions, (String, u8)> {
-        let hash = match self.extra_args.pop() {
-            Some(hash) => hash,
-            None => {
-                return Err((String::from(MISSING_HASH_ARG), CRACK_HASH_PARSE_ERROR_EXIT_CODE));
-            }
-        };
-        Ok(
-            CrackHashOptions {
-                rainbow_table_file_path: String::from(&self.rainbow_table_file_path),
-                hash: hash,
-            }
-        )
-    }
-}
-
-
-fn print_available_operations() {
-    eprintln!("Available Operations:");
-    eprintln!("{}\n{}", GENERATE_TABLE_OPERATION, CRACK_HASH_OPEATION);
-}
-
-fn print_help() {
-    let cli_args: Vec<String> = env::args().collect();
-    let program_name = &cli_args[0];
-    eprintln!("Usage: {} OPERATION [...operation_args]", program_name);
-    print_available_operations();
-}
-
-
-pub fn parse_cli() -> ProgramOptions {
-    let mut cli_args: Vec<String> = env::args().collect();
-    if cli_args.len() <= 1 {
-        print_help();
-        process::exit(1);
-    }
-    // Reverse so we can pop from the first argument
-    cli_args.reverse();
-    cli_args.pop();
-    ProgramOptions::new(cli_args).unwrap_or_else(|err| {
-        let (err_msg, exit_code) = err;
-        eprintln!("{}", err_msg);
-        print_help();
-        process::exit(exit_code.into());
-    })
 }
