@@ -25,7 +25,7 @@ pub enum Commands {
 }
 
 #[derive(Parser)]
-pub struct Cli {
+struct Cli {
     #[clap(subcommand)]
     pub command: Commands
 }
