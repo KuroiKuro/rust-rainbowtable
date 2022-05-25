@@ -1,25 +1,34 @@
-use crate::cli::{ProgramOptions, AvailableOperations};
+use crate::cli::{ProgramOptions, Commands};
 use std::process;
+
+
+const UNKNOWN_ERROR_MSG: &str = "An unknown error occurred";
+const UNKNOWN_ERROR_EXIT_CODE: i32 = 10;
 
 
 pub fn select_run(mut program_options: ProgramOptions) {
     match program_options.operation {
-        AvailableOperations::GenerateTable => {
+        Commands::GenerateTable { .. } => {
             let gen_table_opts = program_options.get_generate_table_options();
             match gen_table_opts {
-                Ok(opts) => generate_table::run(opts),
-                Err(e) => {
-                    eprintln!("{}", e.0);
-                    process::exit(e.1.into());
+                Some(opts) => generate_table::run(opts),
+                None => {
+                    // We should not be entering this loop, since clap already parses and confirms
+                    // that the required arguments are passed to the program
+                    eprintln!("{}", UNKNOWN_ERROR_MSG);
+                    process::exit(UNKNOWN_ERROR_EXIT_CODE);
                 }
             }
         },
-        AvailableOperations::CrackHash => {
-            match program_options.get_crack_hash_options() {
-                Ok(opts) => crack_hash::run(opts),
-                Err(e) => {
-                    eprintln!("{}", e.0);
-                    process::exit(e.1.into());
+        Commands::CrackHash { .. } => {
+            let crack_hash_opts = program_options.get_crack_hash_options();
+            match crack_hash_opts {
+                Some(opts) => crack_hash::run(opts),
+                None => {
+                    // We should not be entering this loop, since clap already parses and confirms
+                    // that the required arguments are passed to the program
+                    eprintln!("{}", UNKNOWN_ERROR_MSG);
+                    process::exit(UNKNOWN_ERROR_EXIT_CODE);
                 }
             };
         }
