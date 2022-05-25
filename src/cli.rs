@@ -70,6 +70,11 @@ impl ProgramOptions {
         }
     }
 
+    /*
+        Need to figure out a clean way to parse the GenerateTableOptions and CrackHashOptions
+        without using a match statement, because clap already parses it all for us so it is
+        guaranteed that the argument values exist for each subcommand
+    */
     pub fn get_generate_table_options(&mut self) -> Option<GenerateTableOptions> {
         match &self.operation {
             Commands::GenerateTable { rainbow_table_file_path, word_file_path } => {
