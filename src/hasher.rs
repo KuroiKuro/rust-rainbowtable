@@ -56,6 +56,7 @@ fn deserialize_single_hash(serialized_hash: String) -> Result<WordHash, String> 
 pub fn generate_serialized_hashes(word_vec: Vec<String>) -> Vec<String> {
     let word_hash_vec = hash_word_vec(word_vec);
     let mut serialized_hashes: Vec<String> = Vec::new();
+    // TODO: Refactor to use iterator!!
     for word_hash in word_hash_vec {
         let hash_str = generate_hash_str(word_hash);
         serialized_hashes.push(hash_str);
