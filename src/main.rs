@@ -1,9 +1,5 @@
-mod cli;
-mod reader;
-mod hasher;
-mod operations;
-
-use cli::ProgramOptions;
+use rust_rainbowtable::operations;
+use rust_rainbowtable::cli::ProgramOptions;
 
 fn main() {
     let program_options = ProgramOptions::new();
