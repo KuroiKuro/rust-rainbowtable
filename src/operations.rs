@@ -93,7 +93,7 @@ mod generate_table {
         };
 
         println!("Generating words...");
-        let serialized_hashes = hasher::generate_serialized_hashes(words);
+        let serialized_hashes = hasher::serialize_hashes(words);
         println!("Generated {} words", serialized_hashes.len());
         println!("Writing generated words to {}", rainbow_table_file_path);
         write_hashes_to_file(rainbow_table_file_path, serialized_hashes);
