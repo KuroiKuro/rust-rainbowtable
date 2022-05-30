@@ -37,16 +37,16 @@ pub fn select_run(mut program_options: ProgramOptions) {
 
 mod generate_table {
     use std::{fs, process, path};
-    use std::io::{stdin, Write}; 
+    use std::io::{stdin, Write, BufRead}; 
     use crate::{cli, reader, hasher};
 
-    fn write_hashes_to_file(rainbow_table_file_path: &str, serialized_hashes: Vec<String>) {
+    fn write_hashes_to_file<R: BufRead>(mut reader: R, rainbow_table_file_path: &str, serialized_hashes: Vec<String>) {
         // Check if file exists, and if it does, prompt to overwrite
         let path_exists = path::Path::new(rainbow_table_file_path).exists();
         if path_exists {
             eprintln!("{} already exists. Overwrite? (Y/n)", rainbow_table_file_path);
             let mut buf = String::new();
-            match stdin().read_line(&mut buf) {
+            match reader.read_line(&mut buf) {
                 Err(_) => {
                     eprintln!("Error while reading input!");
                     process::exit(90);
@@ -96,8 +96,93 @@ mod generate_table {
         let serialized_hashes = hasher::serialize_hashes(words);
         println!("Generated {} words", serialized_hashes.len());
         println!("Writing generated words to {}", rainbow_table_file_path);
-        write_hashes_to_file(rainbow_table_file_path, serialized_hashes);
+        let stdin = stdin();
+        write_hashes_to_file(stdin.lock(), rainbow_table_file_path, serialized_hashes);
         println!("Write complete!");
+    }
+
+    #[cfg(test)]
+    mod test_utils {
+        use std::fs;
+        use std::io::Write;
+        use rand::{self, Rng, distributions::Alphanumeric};
+
+        const FILEPATH: &str = "/tmp/test_rainbow_file.txt";
+        const TMP_DIR: &str = "/tmp/test_wordlist.txt";
+        // The number of characters for the randomly generated temp dir and file names
+        const TEMP_NAME_LENGTH: usize = 8;
+
+        pub struct TempFileHandler {
+            temp_dir_path: String,
+            temp_file_path: String,
+            temp_file_name: String,
+        }
+
+        impl TempFileHandler {
+            pub fn new() -> TempFileHandler {
+                let dir_name = format!("/tmp/{}", TempFileHandler::generate_name());
+                let file_name = TempFileHandler::generate_name();
+                let file_path = format!("{}/{}", dir_name, file_name);
+
+                if let Err(e) = fs::create_dir(&dir_name) {
+                    panic!("{}", e)
+                };
+                if let Err(e) = fs::File::create(&file_path) {
+                    panic!("{}", e)
+                };
+
+                TempFileHandler { 
+                    temp_dir_path: dir_name,
+                    temp_file_path: file_path,
+                    temp_file_name: file_name
+                }
+            }
+
+            fn generate_name() -> String {
+                // https://stackoverflow.com/questions/54275459/how-do-i-create-a-random-string-by-sampling-from-alphanumeric-characters
+                let name: String = rand::thread_rng()
+                    .sample_iter(&Alphanumeric)
+                    .take(TEMP_NAME_LENGTH)
+                    .map(char::from)
+                    .collect();
+                name
+            }
+
+        }
+
+        impl Drop for TempFileHandler {
+            fn drop(&mut self) {
+                // Cleanup temp dir and all files within it
+                if let Err(e) = fs::remove_dir_all(&self.temp_dir_path) {
+                    panic!("{}", e);
+                };
+            }
+        }
+
+        fn setup_wordlist() {
+            // Create an example wordlist for testing purposes
+            let mut wordfile = match fs::File::create(TMP_DIR) {
+                Ok(wordfile) => wordfile,
+                Err(e) => panic!("{}",e)
+            };
+            match writeln!(wordfile, "sample\r\npirate\r\nmagician\r\nhermes\r\n") {
+                Ok(_) => (),
+                Err(e) => panic!("{}", e)
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+        use std::io::LineWriter;
+
+        
+
+        #[test]
+        fn test_write_hashes_to_file() {
+            
+        }
     }
 }
 
