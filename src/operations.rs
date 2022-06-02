@@ -102,87 +102,50 @@ mod generate_table {
     }
 
     #[cfg(test)]
-    mod test_utils {
-        use std::fs;
-        use std::io::Write;
-        use rand::{self, Rng, distributions::Alphanumeric};
-
-        const FILEPATH: &str = "/tmp/test_rainbow_file.txt";
-        const TMP_DIR: &str = "/tmp/test_wordlist.txt";
-        // The number of characters for the randomly generated temp dir and file names
-        const TEMP_NAME_LENGTH: usize = 8;
-
-        pub struct TempFileHandler {
-            temp_dir_path: String,
-            temp_file_path: String,
-            temp_file_name: String,
-        }
-
-        impl TempFileHandler {
-            pub fn new() -> TempFileHandler {
-                let dir_name = format!("/tmp/{}", TempFileHandler::generate_name());
-                let file_name = TempFileHandler::generate_name();
-                let file_path = format!("{}/{}", dir_name, file_name);
-
-                if let Err(e) = fs::create_dir(&dir_name) {
-                    panic!("{}", e)
-                };
-                if let Err(e) = fs::File::create(&file_path) {
-                    panic!("{}", e)
-                };
-
-                TempFileHandler { 
-                    temp_dir_path: dir_name,
-                    temp_file_path: file_path,
-                    temp_file_name: file_name
-                }
-            }
-
-            fn generate_name() -> String {
-                // https://stackoverflow.com/questions/54275459/how-do-i-create-a-random-string-by-sampling-from-alphanumeric-characters
-                let name: String = rand::thread_rng()
-                    .sample_iter(&Alphanumeric)
-                    .take(TEMP_NAME_LENGTH)
-                    .map(char::from)
-                    .collect();
-                name
-            }
-
-        }
-
-        impl Drop for TempFileHandler {
-            fn drop(&mut self) {
-                // Cleanup temp dir and all files within it
-                if let Err(e) = fs::remove_dir_all(&self.temp_dir_path) {
-                    panic!("{}", e);
-                };
-            }
-        }
-
-        fn setup_wordlist() {
-            // Create an example wordlist for testing purposes
-            let mut wordfile = match fs::File::create(TMP_DIR) {
-                Ok(wordfile) => wordfile,
-                Err(e) => panic!("{}",e)
-            };
-            match writeln!(wordfile, "sample\r\npirate\r\nmagician\r\nhermes\r\n") {
-                Ok(_) => (),
-                Err(e) => panic!("{}", e)
-            }
-        }
-    }
-
-    #[cfg(test)]
     mod tests {
         use super::*;
-        use std::io::LineWriter;
-
+        use super::super::test_utils;
+        use std::io::BufReader;
+        use crate::hasher::{serialize_hashes, HASH_DELIMITER};
         
 
         #[test]
         fn test_write_hashes_to_file() {
-            
+            // Create a temp file for the test to write to
+            let temp_file_handler = test_utils::TempFileHandler::new();
+
+            // Create serialized hashes vec for testing
+            let words = vec![
+                "potato".to_string(),
+                "rice".to_string(),
+                "noodles".to_string(),
+                "salad".to_string(),
+            ];
+            let serialized_hashes = serialize_hashes(words);
+
+            let input = b"y";
+            // https://stackoverflow.com/questions/28370126/how-can-i-test-stdin-and-stdout
+            write_hashes_to_file(
+                &input[..], &temp_file_handler.temp_file_path, serialized_hashes
+            );
+
+            // Verify that the expected things were written to the file
+            let wordfile = temp_file_handler.get_file_object(test_utils::FileMode::Read);
+            let reader = BufReader::new(wordfile);
+            let expected_lines = vec![
+                format!("potato{}e91c254ad58860a02c788dfb5c1a65d6a8846ab1dc649631c7db16fef4af2dec", HASH_DELIMITER),
+                format!("rice{}209f76418ece7c936b65ff4777a578d860f762c37ad6c7f08f5826242199ef51", HASH_DELIMITER),
+                format!("noodles{}838f8d9acc45bd36e3213c47c3222e644f44c959fa370bbfa6df46b171c02f0c", HASH_DELIMITER),
+                format!("salad{}c6c3fa689e291bba6f7436ee76dc542ec4678a410a2adbb26bbedfd1e6a8aa85", HASH_DELIMITER),
+            ];
+            for line in reader.lines() {
+                match line {
+                    Ok(line) => assert!(expected_lines.contains(&line), "Expected line not found in written wordfile: {}", line),
+                    Err(e) => panic!("{}", e)
+                };
+            };
         }
+
     }
 }
 
@@ -220,5 +183,90 @@ mod crack_hash {
             }
         }
         println!("Sorry, hash not found in the rainbow table!");
+    }
+}
+
+
+#[cfg(test)]
+mod test_utils {
+    use std::fs;
+    use std::io::Write;
+    use rand::{self, Rng, distributions::Alphanumeric};
+
+    // The number of characters for the randomly generated temp dir and file names
+    const TEMP_NAME_LENGTH: usize = 8;
+
+    #[derive(Debug, PartialEq)]
+    pub enum FileMode {
+        Read,
+        Write,
+        Append,
+    }
+
+    #[derive(Debug)]
+    pub struct TempFileHandler {
+        temp_dir_path: String,
+        pub temp_file_path: String,
+        temp_file_name: String,
+    }
+
+    impl TempFileHandler {
+        pub fn new() -> TempFileHandler {
+            let dir_name = format!("/tmp/{}", TempFileHandler::generate_name());
+            let file_name = TempFileHandler::generate_name();
+            let file_path = format!("{}/{}", dir_name, file_name);
+
+            if let Err(e) = fs::create_dir(&dir_name) {
+                panic!("{}", e)
+            };
+            if let Err(e) = fs::File::create(&file_path) {
+                panic!("{}", e)
+            };
+
+            TempFileHandler { 
+                temp_dir_path: dir_name,
+                temp_file_path: file_path,
+                temp_file_name: file_name
+            }
+        }
+
+        fn generate_name() -> String {
+            // https://stackoverflow.com/questions/54275459/how-do-i-create-a-random-string-by-sampling-from-alphanumeric-characters
+            let name: String = rand::thread_rng()
+                .sample_iter(&Alphanumeric)
+                .take(TEMP_NAME_LENGTH)
+                .map(char::from)
+                .collect();
+            name
+        }
+
+        pub fn get_file_object(&self, file_mode: FileMode) -> fs::File {
+            let f = fs::OpenOptions::new()
+                .append(file_mode == FileMode::Append)
+                .read(file_mode == FileMode::Read)
+                .write(file_mode == FileMode::Write)
+                .open(&self.temp_file_path);
+            match f {
+                Ok(f) => f,
+                Err(e) => panic!("Failed to open temp file! Error: {}, FileMode: {:?}, TempFileHandler: {:?}", e, file_mode, self)
+            }
+        }
+
+    }
+
+    impl Drop for TempFileHandler {
+        fn drop(&mut self) {
+            // Cleanup temp dir and all files within it
+            if let Err(e) = fs::remove_dir_all(&self.temp_dir_path) {
+                panic!("{}", e);
+            };
+        }
+    }
+
+    pub fn setup_wordlist(mut wordfile: &fs::File) {
+        match writeln!(wordfile, "sample\r\npirate\r\nmagician\r\nhermes\r\n") {
+            Ok(_) => (),
+            Err(e) => panic!("{}", e)
+        }
     }
 }
