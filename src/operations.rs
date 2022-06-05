@@ -1,12 +1,10 @@
 use crate::cli::{ProgramOptions, Commands};
-use std::process;
-
 
 const UNKNOWN_ERROR_MSG: &str = "An unknown error occurred";
 const UNKNOWN_ERROR_EXIT_CODE: i32 = 10;
 
 
-pub fn select_run(mut program_options: ProgramOptions) {
+pub fn select_run(mut program_options: ProgramOptions) -> i32 {
     match program_options.operation {
         Commands::GenerateTable { .. } => {
             let gen_table_opts = program_options.get_generate_table_options();
@@ -16,7 +14,7 @@ pub fn select_run(mut program_options: ProgramOptions) {
                     // We should not be entering this loop, since clap already parses and confirms
                     // that the required arguments are passed to the program
                     eprintln!("{}", UNKNOWN_ERROR_MSG);
-                    process::exit(UNKNOWN_ERROR_EXIT_CODE);
+                    UNKNOWN_ERROR_EXIT_CODE
                 }
             }
         },
@@ -28,19 +26,21 @@ pub fn select_run(mut program_options: ProgramOptions) {
                     // We should not be entering this loop, since clap already parses and confirms
                     // that the required arguments are passed to the program
                     eprintln!("{}", UNKNOWN_ERROR_MSG);
-                    process::exit(UNKNOWN_ERROR_EXIT_CODE);
+                    UNKNOWN_ERROR_EXIT_CODE
                 }
-            };
+            }
         }
     }
 }
 
 mod generate_table {
-    use std::{fs, process, path};
+    use std::{fs, path};
     use std::io::{stdin, Write, BufRead}; 
     use crate::{cli, reader, hasher};
 
-    fn write_hashes_to_file<R: BufRead>(mut reader: R, rainbow_table_file_path: &str, serialized_hashes: Vec<String>) {
+    const INPUT_READ_ERROR: i32 = 4;
+
+    fn write_hashes_to_file<R: BufRead>(mut reader: R, rainbow_table_file_path: &str, serialized_hashes: Vec<String>) -> i32 {
         // Check if file exists, and if it does, prompt to overwrite
         let path_exists = path::Path::new(rainbow_table_file_path).exists();
         if path_exists {
@@ -49,13 +49,13 @@ mod generate_table {
             match reader.read_line(&mut buf) {
                 Err(_) => {
                     eprintln!("Error while reading input!");
-                    process::exit(90);
+                    return INPUT_READ_ERROR;
                 },
                 _ => ()
             };
             let first_char: char = buf.as_bytes()[0] as char;
             if first_char != 'y' && first_char != 'Y' && first_char != '\n' {
-                return;
+                return 0;
             }
         }
 
@@ -64,7 +64,7 @@ mod generate_table {
             Ok(f) => f,
             Err(e) => {
                 eprintln!("Unable to open file for writing: {}", e);
-                process::exit(reader::FILE_OPERATION_ERROR.into());
+                return reader::FILE_OPERATION_ERROR;
             }
         };
 
@@ -75,20 +75,20 @@ mod generate_table {
         match file.write_all(content.as_bytes()) {
             Err(e) => {
                 eprintln!("Error while writing hashes to file: {}", e);
-                process::exit(reader::FILE_OPERATION_ERROR.into());
+                return reader::FILE_OPERATION_ERROR;
             },
-            Ok(_) => ()
+            Ok(_) => 0
         }
     }
 
-    pub fn run(generate_table_options: cli::GenerateTableOptions) {
+    pub fn run(generate_table_options: cli::GenerateTableOptions) -> i32 {
         let word_file_path = &generate_table_options.word_file_path;
         let rainbow_table_file_path = &generate_table_options.rainbow_table_file_path;
         let words = match reader::read_words(word_file_path) {
             Ok(result) => result,
             Err(e) => {
                 eprintln!("{}", e);
-                process::exit(reader::FILE_OPERATION_ERROR.into());
+                return reader::FILE_OPERATION_ERROR;
             }
         };
 
@@ -99,6 +99,7 @@ mod generate_table {
         let stdin = stdin();
         write_hashes_to_file(stdin.lock(), rainbow_table_file_path, serialized_hashes);
         println!("Write complete!");
+        0
     }
 
     #[cfg(test)]
@@ -107,7 +108,7 @@ mod generate_table {
         use super::super::test_utils;
         use std::io::{BufReader, BufWriter, Read};
         use crate::hasher::{serialize_hashes, HASH_DELIMITER};
-        
+
         #[test]
         fn test_write_hashes_to_file() {
             // Create a temp file for the test to write to
@@ -188,40 +189,52 @@ mod generate_table {
 }
 
 mod crack_hash {
-    use std::process;
     use crate::{cli, hasher, reader};
 
-    const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: u8 = 4;
+    const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: i32 = 3;
 
-    fn create_rainbow_table(words: Vec<String>) -> Vec<hasher::WordHash> {
-        match hasher::deserialize_hashes(words) {
-            Ok(hashes) => hashes,
-            Err(e) => {
-                eprintln!("{}", e);
-                process::exit(CRACK_HASH_RUNTIME_ERROR_EXIT_CODE.into());
-            }
-        }
-    }
-
-    pub fn run(crack_hash_options: cli::CrackHashOptions) {
+    pub fn run(crack_hash_options: cli::CrackHashOptions) -> i32 {
         // Read words from file
         let rainbow_table_file_path = crack_hash_options.rainbow_table_file_path;
         let read_words = match reader::read_words(&rainbow_table_file_path) {
             Ok(result) => result,
             Err(e) => {
                 eprintln!("{}", e);
-                process::exit(reader::FILE_OPERATION_ERROR.into());
+                return reader::FILE_OPERATION_ERROR;
             }
         };
-        let rainbow_table = create_rainbow_table(read_words);
+        let rainbow_table = match hasher::deserialize_hashes(read_words) {
+            Ok(hashes) => hashes,
+            Err(e) => {
+                eprintln!("{}", e);
+                return CRACK_HASH_RUNTIME_ERROR_EXIT_CODE;
+            }
+        };
         for wordhash in rainbow_table {
             if wordhash.hash == crack_hash_options.hash {
                 println!("Hash Cracked! The word is: {}", wordhash.word);
-                return;
+                return 0;
             }
         }
         println!("Sorry, hash not found in the rainbow table!");
+        0
     }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn test_create_rainbow_table() {
+            let words = vec![
+                "hashicorp",
+                "pulumi",
+                "gitlab",
+            ];
+            
+        }
+    }
+
 }
 
 
