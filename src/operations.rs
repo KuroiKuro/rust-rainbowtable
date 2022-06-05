@@ -55,7 +55,7 @@ mod generate_table {
             };
             let first_char: char = buf.as_bytes()[0] as char;
             if first_char != 'y' && first_char != 'Y' && first_char != '\n' {
-                process::exit(0);
+                return;
             }
         }
 
