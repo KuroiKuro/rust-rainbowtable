@@ -105,10 +105,9 @@ mod generate_table {
     mod tests {
         use super::*;
         use super::super::test_utils;
-        use std::io::BufReader;
+        use std::io::{BufReader, BufWriter, Read};
         use crate::hasher::{serialize_hashes, HASH_DELIMITER};
         
-
         #[test]
         fn test_write_hashes_to_file() {
             // Create a temp file for the test to write to
@@ -123,7 +122,7 @@ mod generate_table {
             ];
             let serialized_hashes = serialize_hashes(words);
 
-            let input = b"y";
+            let input = b"y\n";
             // https://stackoverflow.com/questions/28370126/how-can-i-test-stdin-and-stdout
             write_hashes_to_file(
                 &input[..], &temp_file_handler.temp_file_path, serialized_hashes
@@ -144,6 +143,45 @@ mod generate_table {
                     Err(e) => panic!("{}", e)
                 };
             };
+        }
+
+        #[test]
+        fn test_write_hashes_to_file_not_overwrite() {
+            // Create a temp file with sample text in it to check if it got overwritten
+            let sample_text = "The quick brown fox jumps over the lazy dog.";
+            let temp_file_handler = test_utils::TempFileHandler::new();
+            let file = temp_file_handler.get_file_object(test_utils::FileMode::Write);
+            // Write sample text into file
+            let mut writer = BufWriter::new(&file);
+            match writer.write_all(sample_text.as_bytes()) {
+                Ok(_) => (),
+                Err(e) => panic!("{}", e)
+            };
+            // Drop file pointer and writer to "close" the file, prevent any conflicts later on
+            std::mem::drop(writer);
+            std::mem::drop(file);
+
+            let words = vec![
+                "potato".to_string(),
+            ];
+            let serialized_hashes = serialize_hashes(words);
+            let input = b"n\n";
+            write_hashes_to_file(
+                &input[..], &temp_file_handler.temp_file_path, serialized_hashes
+            );
+            // File should not be overwritten
+            let file = temp_file_handler.get_file_object(test_utils::FileMode::Read);
+            let mut reader = BufReader::new(&file);
+            let mut read_text = String::new();
+            // Read all text to a string buffer, to make sure that nothing else was appended to the file
+            match reader.read_to_string(&mut read_text) {
+                // If Ok, read until EOF was successful
+                Ok(_) => (),
+                Err(e) => panic!("{}", e)
+            };
+            assert_eq!(sample_text, read_text);
+            println!("Test complete!")
+
         }
 
     }
