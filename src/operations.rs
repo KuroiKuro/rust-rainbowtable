@@ -292,6 +292,17 @@ mod crack_hash {
 
             let return_code = run(options);
             assert_eq!(return_code, 0);
+
+            // Test that return code 0 is returned even when hash is uncracked
+            // Word is "absent"
+            let absent_hash = "5ad38304b535c2987dbd24657c1a11b884984ff600d9f389deb0d4e634fee792".to_string();
+            let temp_file_path = temp_file_handler.temp_file_path.clone();
+            let options = CrackHashOptions {
+                hash: absent_hash,
+                rainbow_table_file_path: temp_file_path
+            };
+            let return_code = run(options);
+            assert_eq!(return_code, 0);
         }
     }
 
