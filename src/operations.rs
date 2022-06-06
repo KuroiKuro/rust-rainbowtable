@@ -193,6 +193,15 @@ mod crack_hash {
 
     const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: i32 = 3;
 
+    fn crack_hash<'a>(hash: &String, rainbow_table: &'a Vec<hasher::WordHash>) -> Result<&'a String, ()> {
+        for wordhash in rainbow_table {
+            if &wordhash.hash == hash {
+                return Ok(&wordhash.word);
+            }
+        }
+        Err(())
+    }
+
     pub fn run(crack_hash_options: cli::CrackHashOptions) -> i32 {
         // Read words from file
         let rainbow_table_file_path = crack_hash_options.rainbow_table_file_path;
@@ -210,28 +219,79 @@ mod crack_hash {
                 return CRACK_HASH_RUNTIME_ERROR_EXIT_CODE;
             }
         };
-        for wordhash in rainbow_table {
-            if wordhash.hash == crack_hash_options.hash {
-                println!("Hash Cracked! The word is: {}", wordhash.word);
-                return 0;
-            }
-        }
-        println!("Sorry, hash not found in the rainbow table!");
+        match crack_hash(&crack_hash_options.hash, &rainbow_table) {
+            Ok(cracked_word) => println!("Hash Cracked! The word is: {}", cracked_word),
+            Err(_) => println!("Sorry, hash not found in the rainbow table!")
+        };
         0
     }
 
     #[cfg(test)]
     mod tests {
         use super::*;
+        use super::super::test_utils;
+        use crate::hasher::WordHash;
+        use std::io::{BufWriter, Write};
+        use hasher::HASH_DELIMITER;
+        use cli::CrackHashOptions;
 
         #[test]
-        fn test_create_rainbow_table() {
-            let words = vec![
-                "hashicorp",
-                "pulumi",
-                "gitlab",
+        fn test_crack_hash() {
+            let expected_hash = "c10c7396898976bb8c95966eef6b45c81f66be86cdea5c593ae5cba1026cbbb5".to_string();
+            let expected_word = "malenia".to_string();
+            let rainbow_table = vec![
+                WordHash {
+                    hash: "1b8c5c045da33a8545e741e5095d8b96296d84ce1ea18a5918518e2a9c8eca98".to_string(),
+                    word: "uchigatana".to_string()
+                },
+                WordHash {
+                    hash: expected_hash.clone(),
+                    word: expected_word.clone()
+                },
             ];
-            
+
+            // Test that expected cracking happens
+            match crack_hash(&expected_hash, &rainbow_table) {
+                Ok(word) => assert_eq!(*word, expected_word),
+                Err(_) => panic!("Failed to crack expected word {}", expected_word)
+            };
+
+            // Test that Err is returned when hash is not present in rainbow table
+            let absent_word = String::from("test");
+            match crack_hash(&absent_word, &rainbow_table) {
+                Ok(word) => panic!("Word was cracked even though hash was not in rainbow table. Got: {}", word),
+                Err(_) => ()
+            }
+        }
+
+        #[test]
+        fn test_run() {
+            let expected_word = "gitlab";
+            let expected_hash = "9d96d9d5b1addd7e7e6119a23b1e5b5f68545312bfecb21d1cdc6af22b8628b8";
+            let wordlist_lines = vec![
+                format!("hashicorp{}fe64108583908cdaeacb766f4e1c26977727ece6c44dd901ab1f511c32e22dc0", HASH_DELIMITER),
+                format!("pulumi{}fbe2a04069387628783a3f90b947236e6ff8b1c099e710871356a6381a4e20b2", HASH_DELIMITER),
+                format!("{}{}{}", expected_word, HASH_DELIMITER, expected_hash),
+            ];
+
+            // Write wordlist to file
+            let temp_file_handler = test_utils::TempFileHandler::new();
+            let file = temp_file_handler.get_file_object(test_utils::FileMode::Write);
+            let mut writer = BufWriter::new(file);
+            for line in wordlist_lines {
+                if let Err(e) = writer.write(line.as_bytes()) {
+                    panic!("{}", e);
+                }
+            }
+
+            let temp_file_path = temp_file_handler.temp_file_path.clone();
+            let options = CrackHashOptions {
+                hash: expected_hash.to_string(),
+                rainbow_table_file_path: temp_file_path,
+            };
+
+            let return_code = run(options);
+            assert_eq!(return_code, 0);
         }
     }
 
@@ -241,7 +301,6 @@ mod crack_hash {
 #[cfg(test)]
 mod test_utils {
     use std::fs;
-    use std::io::Write;
     use rand::{self, Rng, distributions::Alphanumeric};
 
     // The number of characters for the randomly generated temp dir and file names
@@ -311,13 +370,6 @@ mod test_utils {
             if let Err(e) = fs::remove_dir_all(&self.temp_dir_path) {
                 panic!("{}", e);
             };
-        }
-    }
-
-    pub fn setup_wordlist(mut wordfile: &fs::File) {
-        match writeln!(wordfile, "sample\r\npirate\r\nmagician\r\nhermes\r\n") {
-            Ok(_) => (),
-            Err(e) => panic!("{}", e)
         }
     }
 }
