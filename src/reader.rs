@@ -34,7 +34,8 @@ pub fn read_words(fpath: &str) -> Result<Vec<String>, String> {
 #[cfg(test)]
 mod tests {
     use crate::test_utils;
-    use std::io::{BufWriter, BufReader, BufRead, Write};
+    use super::*;
+    use std::io::{BufWriter, Write};
 
     #[test]
     fn test_read_words() {
@@ -51,16 +52,14 @@ mod tests {
         std::mem::drop(writer);
         std::mem::drop(temp_file);
 
-        let temp_file = temp_file_handler.get_file_object(test_utils::FileMode::Read);
-        let reader = BufReader::new(temp_file);
-        let lines = reader.lines();
-        let lines_iter = lines.zip(words.into_iter());
+        let read_words = match read_words(&temp_file_handler.temp_file_path) {
+            Ok(words) => words,
+            Err(e) => panic!("{}", e)
+        };
+
+        let lines_iter = read_words.into_iter().zip(words.into_iter());
         lines_iter.for_each(|pair| {
-            let read_line: String = match pair.0 {
-                Ok(line) => line,
-                Err(e) => panic!("{}", e)
-            };
-            assert_eq!(read_line, pair.1);
+            assert_eq!(pair.0, pair.1);
         });
     }
 }
