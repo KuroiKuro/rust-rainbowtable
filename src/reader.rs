@@ -29,3 +29,38 @@ pub fn read_words(fpath: &str) -> Result<Vec<String>, String> {
     };
     Ok(words)
 }
+
+
+#[cfg(test)]
+mod tests {
+    use crate::test_utils;
+    use std::io::{BufWriter, BufReader, BufRead, Write};
+
+    #[test]
+    fn test_read_words() {
+        let temp_file_handler = test_utils::TempFileHandler::new();
+        let temp_file = temp_file_handler.get_file_object(test_utils::FileMode::Write);
+        let mut writer = BufWriter::new(&temp_file);
+        let words: [&str; 3] = ["isshin", "glock", "saint"];
+        let buf = words.join("\n");
+        match writer.write_all(buf.as_bytes()) {
+            Ok(_) => (),
+            Err(e) => panic!("{}", e)
+        };
+        // drop file handle
+        std::mem::drop(writer);
+        std::mem::drop(temp_file);
+
+        let temp_file = temp_file_handler.get_file_object(test_utils::FileMode::Read);
+        let reader = BufReader::new(temp_file);
+        let lines = reader.lines();
+        let lines_iter = lines.zip(words.into_iter());
+        lines_iter.for_each(|pair| {
+            let read_line: String = match pair.0 {
+                Ok(line) => line,
+                Err(e) => panic!("{}", e)
+            };
+            assert_eq!(read_line, pair.1);
+        });
+    }
+}
