@@ -1,6 +1,6 @@
-use std::process::exit;
-use rust_rainbowtable::operations;
 use rust_rainbowtable::cli::ProgramOptions;
+use rust_rainbowtable::operations;
+use std::process::exit;
 
 fn main() {
     let program_options = ProgramOptions::new();

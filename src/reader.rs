@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::{ErrorKind, BufReader, BufRead, Error};
+use std::io::{BufRead, BufReader, Error, ErrorKind};
 
 pub const FILE_OPERATION_ERROR: i32 = 2;
 
@@ -14,29 +14,28 @@ pub fn read_words(fpath: &str) -> Result<Vec<String>, String> {
         Err(error) => {
             let mut error_base = String::from("Error opening word file for reading: ");
             match error.kind() {
-            ErrorKind::NotFound => error_base.push_str("File not found"),
-            ErrorKind::PermissionDenied => error_base.push_str("Permission denied"),
-            _ => error_base.push_str("Unknown Error"),
-        }
-        return Err(error_base);
+                ErrorKind::NotFound => error_base.push_str("File not found"),
+                ErrorKind::PermissionDenied => error_base.push_str("Permission denied"),
+                _ => error_base.push_str("Unknown Error"),
+            }
+            return Err(error_base);
         }
     };
 
     let reader = BufReader::new(word_file);
     let words: Vec<String> = match reader.lines().collect::<Result<Vec<String>, Error>>() {
         Err(error) => return Err(format!("Error while reading from file: {}", error)),
-        Ok(lines) => lines
+        Ok(lines) => lines,
     };
     Ok(words)
 }
 
-
 #[cfg(test)]
 mod tests {
-    use crate::test_utils;
     use super::*;
-    use std::io::{BufWriter, Write};
+    use crate::test_utils;
     use std::fs::{set_permissions, Permissions};
+    use std::io::{BufWriter, Write};
     use std::os::unix::fs::PermissionsExt;
 
     #[test]
@@ -48,7 +47,7 @@ mod tests {
         let buf = words.join("\n");
         match writer.write_all(buf.as_bytes()) {
             Ok(_) => (),
-            Err(e) => panic!("{}", e)
+            Err(e) => panic!("{}", e),
         };
         // drop file handle
         std::mem::drop(writer);
@@ -56,7 +55,7 @@ mod tests {
 
         let read_words = match read_words(&temp_file_handler.temp_file_path) {
             Ok(words) => words,
-            Err(e) => panic!("{}", e)
+            Err(e) => panic!("{}", e),
         };
 
         let lines_iter = read_words.into_iter().zip(words.into_iter());
@@ -70,7 +69,7 @@ mod tests {
         let nonexistent_file_path = "/abc/defghi/jkl.qwerty";
         match read_words(nonexistent_file_path) {
             Err(e) => assert!(e.contains("File not found")),
-            Ok(_) => panic!("Did not fail when it should have failed with 'File not found'")
+            Ok(_) => panic!("Did not fail when it should have failed with 'File not found'"),
         };
     }
 
@@ -80,12 +79,12 @@ mod tests {
         let permissions = Permissions::from_mode(0o000);
         match set_permissions(&temp_file_handler.temp_file_path, permissions) {
             Ok(_) => (),
-            Err(e) => panic!("{}", e)
+            Err(e) => panic!("{}", e),
         };
 
         match read_words(&temp_file_handler.temp_file_path) {
             Err(e) => assert!(e.contains("Permission denied")),
-            Ok(_) => panic!("Did not fail when it should have failed with 'Permission Denied'")
+            Ok(_) => panic!("Did not fail when it should have failed with 'Permission Denied'"),
         };
     }
 }
