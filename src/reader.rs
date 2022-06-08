@@ -36,6 +36,8 @@ mod tests {
     use crate::test_utils;
     use super::*;
     use std::io::{BufWriter, Write};
+    use std::fs::{set_permissions, Permissions};
+    use std::os::unix::fs::PermissionsExt;
 
     #[test]
     fn test_read_words() {
@@ -61,5 +63,29 @@ mod tests {
         lines_iter.for_each(|pair| {
             assert_eq!(pair.0, pair.1);
         });
+    }
+
+    #[test]
+    fn test_read_words_no_file() {
+        let nonexistent_file_path = "/abc/defghi/jkl.qwerty";
+        match read_words(nonexistent_file_path) {
+            Err(e) => assert!(e.contains("File not found")),
+            Ok(_) => panic!("Did not fail when it should have failed with 'File not found'")
+        };
+    }
+
+    #[test]
+    fn test_read_words_no_permissions() {
+        let temp_file_handler = test_utils::TempFileHandler::new();
+        let permissions = Permissions::from_mode(0o000);
+        match set_permissions(&temp_file_handler.temp_file_path, permissions) {
+            Ok(_) => (),
+            Err(e) => panic!("{}", e)
+        };
+
+        match read_words(&temp_file_handler.temp_file_path) {
+            Err(e) => assert!(e.contains("Permission denied")),
+            Ok(_) => panic!("Did not fail when it should have failed with 'Permission Denied'")
+        };
     }
 }
