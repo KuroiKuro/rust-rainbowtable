@@ -81,7 +81,7 @@ mod generate_table {
         match file.write_all(content.as_bytes()) {
             Err(e) => {
                 eprintln!("Error while writing hashes to file: {}", e);
-                return reader::FILE_OPERATION_ERROR;
+                reader::FILE_OPERATION_ERROR
             }
             Ok(_) => 0,
         }
