@@ -19,8 +19,8 @@ fn hash_word_vec(word_vec: Vec<String>) -> Vec<WordHash> {
     for word in word_vec {
         let hash = hash_word(&word);
         let word_hash = WordHash {
-            word: word,
-            hash: hash,
+            word,
+            hash,
         };
         hash_vec.push(word_hash);
     }
@@ -31,9 +31,9 @@ fn generate_hash_str(word_hash: WordHash) -> String {
     /*
         Generate a line that contains the word and the hash, delimited by HASH_DELIMITER
     */
-    let mut hash_str = String::from(word_hash.word);
+    let mut hash_str = word_hash.word;
     hash_str.push_str(HASH_DELIMITER);
-    hash_str.push_str(&format!("{}", word_hash.hash));
+    hash_str.push_str(&word_hash.hash);
     hash_str
 }
 
