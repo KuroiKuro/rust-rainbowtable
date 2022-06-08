@@ -1,12 +1,12 @@
+pub mod cli;
 pub mod hasher;
 pub mod operations;
 pub mod reader;
-pub mod cli;
 
 #[cfg(test)]
 mod test_utils {
+    use rand::{self, distributions::Alphanumeric, Rng};
     use std::fs;
-    use rand::{self, Rng, distributions::Alphanumeric};
 
     // The number of characters for the randomly generated temp dir and file names
     const TEMP_NAME_LENGTH: usize = 8;
@@ -38,10 +38,10 @@ mod test_utils {
                 panic!("{}", e)
             };
 
-            TempFileHandler { 
+            TempFileHandler {
                 temp_dir_path: dir_name,
                 temp_file_path: file_path,
-                temp_file_name: file_name
+                temp_file_name: file_name,
             }
         }
 
@@ -63,10 +63,12 @@ mod test_utils {
                 .open(&self.temp_file_path);
             match f {
                 Ok(f) => f,
-                Err(e) => panic!("Failed to open temp file! Error: {}, FileMode: {:?}, TempFileHandler: {:?}", e, file_mode, self)
+                Err(e) => panic!(
+                    "Failed to open temp file! Error: {}, FileMode: {:?}, TempFileHandler: {:?}",
+                    e, file_mode, self
+                ),
             }
         }
-
     }
 
     impl Drop for TempFileHandler {
