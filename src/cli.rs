@@ -99,15 +99,3 @@ impl ProgramOptions {
         }
     }
 }
-
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-
-//     #[test]
-//     fn test_get_generate_table_options() {
-//         let program_options = 
-//     }
-
-// }
