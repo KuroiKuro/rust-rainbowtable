@@ -11,8 +11,8 @@ jobs:
     name: Validate
     runs-on: ubuntu-20.04
     steps:
-      - name: Install rustup
-        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+      - name: Update rustup
+        run: rustup update
       - uses: actions/checkout@v3
       - name: Format, lint and fix code and commit
         run: |
