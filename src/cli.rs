@@ -65,6 +65,7 @@ pub struct ProgramOptions {
 }
 
 impl ProgramOptions {
+    #[allow(clippy::new_without_default)]
     pub fn new() -> ProgramOptions {
         let args = Cli::parse();
         ProgramOptions {
