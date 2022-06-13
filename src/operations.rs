@@ -52,13 +52,10 @@ mod generate_table {
                 rainbow_table_file_path
             );
             let mut buf = String::new();
-            match reader.read_line(&mut buf) {
-                Err(_) => {
-                    eprintln!("Error while reading input!");
-                    return INPUT_READ_ERROR;
-                }
-                _ => (),
-            };
+            if reader.read_line(&mut buf).is_err() {
+                eprintln!("Error while reading input!");
+                return INPUT_READ_ERROR;
+            }
             let first_char: char = buf.as_bytes()[0] as char;
             if first_char != 'y' && first_char != 'Y' && first_char != '\n' {
                 return 0;
@@ -285,12 +282,11 @@ mod crack_hash {
 
             // Test that Err is returned when hash is not present in rainbow table
             let absent_word = String::from("test");
-            match crack_hash(&absent_word, &rainbow_table) {
-                Ok(word) => panic!(
+            if let Ok(word) = crack_hash(&absent_word, &rainbow_table) {
+                panic!(
                     "Word was cracked even though hash was not in rainbow table. Got: {}",
                     word
-                ),
-                Err(_) => (),
+                );
             }
         }
 
