@@ -18,10 +18,7 @@ fn hash_word_vec(word_vec: Vec<String>) -> Vec<WordHash> {
     let mut hash_vec: Vec<WordHash> = Vec::new();
     for word in word_vec {
         let hash = hash_word(&word);
-        let word_hash = WordHash {
-            word,
-            hash,
-        };
+        let word_hash = WordHash { word, hash };
         hash_vec.push(word_hash);
     }
     hash_vec
