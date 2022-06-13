@@ -1,0 +1,36 @@
+name: Validate pull requests
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: Validate
+    runs_on: ubuntu-20.04
+    steps:
+      - name: Install rustup
+        run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+      - uses: actions/checkout@v3
+      - name: Format, lint and fix code and commit
+        run: |
+          cargo fmt
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git add .
+          git commit -m "Format code by CI"
+          git push
+
+      - name: Lint code and commit
+        run: |
+          # Fix fixable lints and fail on others
+          cargo clippy --fix -- -D warnings
+          # Commit lints that were fixed, if all fixable
+          git add .
+          git commit -m "Lint code by CI"
+          git push
+      - name: Check that code can compile
+        run: cargo check
+
+      - name: Run tests
+        run: cargo test
