@@ -12,25 +12,33 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
       - name: Update rustup
-        run: rustup update
+        run: rustup
       - uses: actions/checkout@v3
       - name: Format, lint and fix code and commit
         run: |
           cargo fmt
           git config user.name github-actions
           git config user.email github-actions@github.com
+          ANYTHING_TO_COMMIT=$(git status --porcelain | wc -c)
+          if [[ ${ANYTHING_TO_COMMIT} -ne 0 ]]
+          then
           git add .
           git commit -m "Format code by CI"
           git push
+          fi
 
       - name: Lint code and commit
         run: |
           # Fix fixable lints and fail on others
           cargo clippy --fix -- -D warnings
           # Commit lints that were fixed, if all fixable
+          ANYTHING_TO_COMMIT=$(git status --porcelain | wc -c)
+          if [[ ${ANYTHING_TO_COMMIT} -ne 0 ]]
+          then
           git add .
           git commit -m "Lint code by CI"
           git push
+          fi
       - name: Check that code can compile
         run: cargo check
 
