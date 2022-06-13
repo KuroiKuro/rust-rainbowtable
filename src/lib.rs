@@ -22,7 +22,6 @@ mod test_utils {
     pub struct TempFileHandler {
         temp_dir_path: String,
         pub temp_file_path: String,
-        temp_file_name: String,
     }
 
     impl TempFileHandler {
@@ -41,7 +40,6 @@ mod test_utils {
             TempFileHandler {
                 temp_dir_path: dir_name,
                 temp_file_path: file_path,
-                temp_file_name: file_name,
             }
         }
 
