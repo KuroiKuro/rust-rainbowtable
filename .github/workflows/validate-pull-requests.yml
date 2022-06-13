@@ -9,7 +9,7 @@ env:
 jobs:
   validate:
     name: Validate
-    runs_on: ubuntu-20.04
+    runs-on: ubuntu-20.04
     steps:
       - name: Install rustup
         run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
