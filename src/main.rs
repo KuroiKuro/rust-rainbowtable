@@ -61,12 +61,12 @@ impl fmt::Display for CrackHashOptions {
 }
 
 fn main() {
-    let args = Cli::parse();
-    match args.command {
-        Commands::CrackHash { rainbow_table_file_path, hash } => {
+    // let args = Cli::parse();
+    // match args.command {
+    //     Commands::CrackHash { rainbow_table_file_path, hash } => {
             
-        }
-    }
-    let exit_code = operations::select_run(program_options);
-    exit(exit_code);
+    //     }
+    // }
+    // let exit_code = operations::select_run(program_options);
+    // exit(exit_code);
 }
