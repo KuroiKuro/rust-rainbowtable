@@ -50,10 +50,10 @@ pub struct RainbowTableGenerator {
 }
 
 impl RainbowTableGenerator {
-    pub fn new(word_file_path: &str, rainbow_table_file_path: &str) -> RainbowTableGenerator {
+    pub fn new(word_file_path: String, rainbow_table_file_path: String) -> RainbowTableGenerator {
         RainbowTableGenerator {
-            word_file_path: String::from(word_file_path),
-            rainbow_table_file_path: String::from(rainbow_table_file_path),
+            word_file_path: word_file_path,
+            rainbow_table_file_path: rainbow_table_file_path,
         }
     }
 
