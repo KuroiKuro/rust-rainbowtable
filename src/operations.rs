@@ -7,12 +7,16 @@ const UNKNOWN_ERROR_MSG: &str = "An unknown error occurred";
 const UNKNOWN_ERROR_EXIT_CODE: i32 = 10;
 const INPUT_READ_ERROR: i32 = 4;
 
+fn do_nothing() -> i32 {
+    return 5;
+}
+
 pub fn select_run(mut program_options: ProgramOptions) -> i32 {
     match program_options.operation {
         Commands::GenerateTable { .. } => {
             let gen_table_opts = program_options.get_generate_table_options();
             match gen_table_opts {
-                Some(opts) => generate_table::run(opts),
+                Some(_opts) => do_nothing(),
                 None => {
                     // We should not be entering this loop, since clap already parses and confirms
                     // that the required arguments are passed to the program
@@ -36,6 +40,10 @@ pub fn select_run(mut program_options: ProgramOptions) -> i32 {
     }
 }
 
+pub trait Operator {
+    fn run(&self) -> i32;
+}
+
 pub struct RainbowTableGenerator {
     pub word_file_path: String,
     pub rainbow_table_file_path: String,
@@ -50,17 +58,16 @@ impl RainbowTableGenerator {
     }
 
     fn write_hashes_to_file<R: BufRead>(
-        self,
+        &self,
         mut reader: R,
-        rainbow_table_file_path: &str,
         serialized_hashes: Vec<String>,
     ) -> i32 {
         // Check if file exists, and if it does, prompt to overwrite
-        let path_exists = path::Path::new(rainbow_table_file_path).exists();
+        let path_exists = path::Path::new(&self.rainbow_table_file_path).exists();
         if path_exists {
             eprintln!(
                 "{} already exists. Overwrite? (Y/n)",
-                rainbow_table_file_path
+                &self.rainbow_table_file_path
             );
             let mut buf = String::new();
             if reader.read_line(&mut buf).is_err() {
@@ -74,7 +81,7 @@ impl RainbowTableGenerator {
         }
 
         // Create a new file, and write to it
-        let mut file = match fs::File::create(rainbow_table_file_path) {
+        let mut file = match fs::File::create(&self.rainbow_table_file_path) {
             Ok(f) => f,
             Err(e) => {
                 eprintln!("Unable to open file for writing: {}", e);
@@ -95,10 +102,11 @@ impl RainbowTableGenerator {
         }
     }
 
-    pub fn run(self, generate_table_options: cli::GenerateTableOptions) -> i32 {
-        let word_file_path = &generate_table_options.word_file_path;
-        let rainbow_table_file_path = &generate_table_options.rainbow_table_file_path;
-        let words = match reader::read_words(word_file_path) {
+}
+
+impl Operator for RainbowTableGenerator {
+    fn run(&self) -> i32 {
+        let words = match reader::read_words(&self.word_file_path) {
             Ok(result) => result,
             Err(e) => {
                 eprintln!("{}", e);
@@ -109,14 +117,14 @@ impl RainbowTableGenerator {
         println!("Generating words...");
         let serialized_hashes = hasher::serialize_hashes(words);
         println!("Generated {} words", serialized_hashes.len());
-        println!("Writing generated words to {}", rainbow_table_file_path);
+        println!("Writing generated words to {}", &self.rainbow_table_file_path);
         let stdin = stdin();
-        self.write_hashes_to_file(stdin.lock(), rainbow_table_file_path, serialized_hashes);
+        self.write_hashes_to_file(stdin.lock(), serialized_hashes);
         println!("Write complete!");
         0
     }
-
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -126,7 +134,7 @@ mod tests {
     use std::io::{BufReader, BufWriter, Read};
 
     #[test]
-    fn test_write_hashes_to_file() {
+    fn test_rainbow_table_write_hashes_to_file() {
         // Create a temp file for the test to write to
         let temp_file_handler = test_utils::TempFileHandler::new();
 
@@ -139,11 +147,11 @@ mod tests {
         ];
         let serialized_hashes = serialize_hashes(words);
 
+        let operator = RainbowTableGenerator::new("", &temp_file_handler.temp_file_path);
         let input = b"y\n";
         // https://stackoverflow.com/questions/28370126/how-can-i-test-stdin-and-stdout
-        write_hashes_to_file(
+        operator.write_hashes_to_file(
             &input[..],
-            &temp_file_handler.temp_file_path,
             serialized_hashes,
         );
 
@@ -198,10 +206,10 @@ mod tests {
 
         let words = vec!["potato".to_string()];
         let serialized_hashes = serialize_hashes(words);
+        let operator = RainbowTableGenerator::new("", &temp_file_handler.temp_file_path);
         let input = b"n\n";
-        write_hashes_to_file(
+        operator.write_hashes_to_file(
             &input[..],
-            &temp_file_handler.temp_file_path,
             serialized_hashes,
         );
         // File should not be overwritten
@@ -216,181 +224,6 @@ mod tests {
         };
         assert_eq!(sample_text, read_text);
         println!("Test complete!")
-    }
-}
-
-pub mod generate_table {
-    use crate::{cli, hasher, reader};
-    use std::io::{stdin, BufRead, Write};
-    use std::{fs, path};
-
-    const INPUT_READ_ERROR: i32 = 4;
-
-    fn write_hashes_to_file<R: BufRead>(
-        mut reader: R,
-        rainbow_table_file_path: &str,
-        serialized_hashes: Vec<String>,
-    ) -> i32 {
-        // Check if file exists, and if it does, prompt to overwrite
-        let path_exists = path::Path::new(rainbow_table_file_path).exists();
-        if path_exists {
-            eprintln!(
-                "{} already exists. Overwrite? (Y/n)",
-                rainbow_table_file_path
-            );
-            let mut buf = String::new();
-            if reader.read_line(&mut buf).is_err() {
-                eprintln!("Error while reading input!");
-                return INPUT_READ_ERROR;
-            }
-            let first_char: char = buf.as_bytes()[0] as char;
-            if first_char != 'y' && first_char != 'Y' && first_char != '\n' {
-                return 0;
-            }
-        }
-
-        // Create a new file, and write to it
-        let mut file = match fs::File::create(rainbow_table_file_path) {
-            Ok(f) => f,
-            Err(e) => {
-                eprintln!("Unable to open file for writing: {}", e);
-                return reader::FILE_OPERATION_ERROR;
-            }
-        };
-
-        let mut content = String::new();
-        for hash in serialized_hashes {
-            content.push_str(&format!("{}\n", &hash));
-        }
-        match file.write_all(content.as_bytes()) {
-            Err(e) => {
-                eprintln!("Error while writing hashes to file: {}", e);
-                reader::FILE_OPERATION_ERROR
-            }
-            Ok(_) => 0,
-        }
-    }
-
-    pub fn run(generate_table_options: cli::GenerateTableOptions) -> i32 {
-        let word_file_path = &generate_table_options.word_file_path;
-        let rainbow_table_file_path = &generate_table_options.rainbow_table_file_path;
-        let words = match reader::read_words(word_file_path) {
-            Ok(result) => result,
-            Err(e) => {
-                eprintln!("{}", e);
-                return reader::FILE_OPERATION_ERROR;
-            }
-        };
-
-        println!("Generating words...");
-        let serialized_hashes = hasher::serialize_hashes(words);
-        println!("Generated {} words", serialized_hashes.len());
-        println!("Writing generated words to {}", rainbow_table_file_path);
-        let stdin = stdin();
-        write_hashes_to_file(stdin.lock(), rainbow_table_file_path, serialized_hashes);
-        println!("Write complete!");
-        0
-    }
-
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::hasher::{serialize_hashes, HASH_DELIMITER};
-        use crate::test_utils;
-        use std::io::{BufReader, BufWriter, Read};
-
-        #[test]
-        fn test_write_hashes_to_file() {
-            // Create a temp file for the test to write to
-            let temp_file_handler = test_utils::TempFileHandler::new();
-
-            // Create serialized hashes vec for testing
-            let words = vec![
-                "potato".to_string(),
-                "rice".to_string(),
-                "noodles".to_string(),
-                "salad".to_string(),
-            ];
-            let serialized_hashes = serialize_hashes(words);
-
-            let input = b"y\n";
-            // https://stackoverflow.com/questions/28370126/how-can-i-test-stdin-and-stdout
-            write_hashes_to_file(
-                &input[..],
-                &temp_file_handler.temp_file_path,
-                serialized_hashes,
-            );
-
-            // Verify that the expected things were written to the file
-            let wordfile = temp_file_handler.get_file_object(test_utils::FileMode::Read);
-            let reader = BufReader::new(wordfile);
-            let expected_lines = vec![
-                format!(
-                    "potato{}e91c254ad58860a02c788dfb5c1a65d6a8846ab1dc649631c7db16fef4af2dec",
-                    HASH_DELIMITER
-                ),
-                format!(
-                    "rice{}209f76418ece7c936b65ff4777a578d860f762c37ad6c7f08f5826242199ef51",
-                    HASH_DELIMITER
-                ),
-                format!(
-                    "noodles{}838f8d9acc45bd36e3213c47c3222e644f44c959fa370bbfa6df46b171c02f0c",
-                    HASH_DELIMITER
-                ),
-                format!(
-                    "salad{}c6c3fa689e291bba6f7436ee76dc542ec4678a410a2adbb26bbedfd1e6a8aa85",
-                    HASH_DELIMITER
-                ),
-            ];
-            for line in reader.lines() {
-                match line {
-                    Ok(line) => assert!(
-                        expected_lines.contains(&line),
-                        "Expected line not found in written wordfile: {}",
-                        line
-                    ),
-                    Err(e) => panic!("{}", e),
-                };
-            }
-        }
-
-        #[test]
-        fn test_write_hashes_to_file_not_overwrite() {
-            // Create a temp file with sample text in it to check if it got overwritten
-            let sample_text = "The quick brown fox jumps over the lazy dog.";
-            let temp_file_handler = test_utils::TempFileHandler::new();
-            let file = temp_file_handler.get_file_object(test_utils::FileMode::Write);
-            // Write sample text into file
-            let mut writer = BufWriter::new(&file);
-            match writer.write_all(sample_text.as_bytes()) {
-                Ok(_) => (),
-                Err(e) => panic!("{}", e),
-            };
-            // Drop file pointer and writer to "close" the file, prevent any conflicts later on
-            std::mem::drop(writer);
-            std::mem::drop(file);
-
-            let words = vec!["potato".to_string()];
-            let serialized_hashes = serialize_hashes(words);
-            let input = b"n\n";
-            write_hashes_to_file(
-                &input[..],
-                &temp_file_handler.temp_file_path,
-                serialized_hashes,
-            );
-            // File should not be overwritten
-            let file = temp_file_handler.get_file_object(test_utils::FileMode::Read);
-            let mut reader = BufReader::new(&file);
-            let mut read_text = String::new();
-            // Read all text to a string buffer, to make sure that nothing else was appended to the file
-            match reader.read_to_string(&mut read_text) {
-                // If Ok, read until EOF was successful
-                Ok(_) => (),
-                Err(e) => panic!("{}", e),
-            };
-            assert_eq!(sample_text, read_text);
-            println!("Test complete!")
-        }
     }
 }
 
