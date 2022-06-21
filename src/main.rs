@@ -6,6 +6,8 @@ use clap::{Parser, Subcommand};
 const RAINBOW_TABLE_ARG_HELP: &str = "Path to the rainbow table file";
 const WORD_FILE_ARG_HELP: &str = "Path to the word file";
 const HASH_ARG_HELP: &str = "Hash to crack";
+const THREADS_ARG_HELP: &str = "Number of threads";
+const DEFAULT_THREAD_COUNT: u32 = 1;
 
 #[derive(Subcommand)]
 pub enum Commands {
@@ -27,6 +29,8 @@ pub enum Commands {
 struct Cli {
     #[clap(subcommand)]
     pub command: Commands,
+    #[clap(short = 't', long = "threads", help = THREADS_ARG_HELP)]
+    pub threads: Option<u32>,
 }
 
 fn main() {
@@ -43,6 +47,10 @@ fn main() {
             word_file_path,
             rainbow_table_file_path,
         )),
+    };
+    let _threads = match args.threads {
+        Some(threads) => threads,
+        None => DEFAULT_THREAD_COUNT
     };
     let exit_code = operator.run();
     exit(exit_code);
