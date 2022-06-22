@@ -99,7 +99,6 @@ impl RainbowTableGenerator {
             Ok(_) => 0,
         }
     }
-
 }
 
 impl Operator for RainbowTableGenerator {
@@ -115,7 +114,10 @@ impl Operator for RainbowTableGenerator {
         println!("Generating words...");
         let serialized_hashes = hasher::serialize_hashes(words);
         println!("Generated {} words", serialized_hashes.len());
-        println!("Writing generated words to {}", &self.rainbow_table_file_path);
+        println!(
+            "Writing generated words to {}",
+            &self.rainbow_table_file_path
+        );
         let stdin = stdin();
         self.write_hashes_to_file(stdin.lock(), serialized_hashes);
         println!("Write complete!");
@@ -131,11 +133,12 @@ pub struct HashCracker {
 impl HashCracker {
     pub fn new(rainbow_table_file_path: String, hash: String) -> HashCracker {
         HashCracker {
-            rainbow_table_file_path, hash
+            rainbow_table_file_path,
+            hash,
         }
     }
 
-    fn crack_hash(&self, rainbow_table: Vec<hasher::WordHash>,) -> Result<String, ()> {
+    fn crack_hash(&self, rainbow_table: Vec<hasher::WordHash>) -> Result<String, ()> {
         for wordhash in rainbow_table {
             if &wordhash.hash == &self.hash {
                 return Ok(wordhash.word);
@@ -194,10 +197,7 @@ mod rainbow_table_generator_tests {
         let operator = RainbowTableGenerator::new("".to_string(), temp_file_path);
         let input = b"y\n";
         // https://stackoverflow.com/questions/28370126/how-can-i-test-stdin-and-stdout
-        operator.write_hashes_to_file(
-            &input[..],
-            serialized_hashes,
-        );
+        operator.write_hashes_to_file(&input[..], serialized_hashes);
 
         // Verify that the expected things were written to the file
         let wordfile = temp_file_handler.get_file_object(test_utils::FileMode::Read);
@@ -253,10 +253,7 @@ mod rainbow_table_generator_tests {
         let temp_file_path = String::from(&temp_file_handler.temp_file_path);
         let operator = RainbowTableGenerator::new("".to_string(), temp_file_path);
         let input = b"n\n";
-        operator.write_hashes_to_file(
-            &input[..],
-            serialized_hashes,
-        );
+        operator.write_hashes_to_file(&input[..], serialized_hashes);
         // File should not be overwritten
         let file = temp_file_handler.get_file_object(test_utils::FileMode::Read);
         let mut reader = BufReader::new(&file);
@@ -305,7 +302,8 @@ mod hash_cracker_tests {
         };
 
         // Test that Err is returned when hash is not present in rainbow table
-        let absent_word_hash = String::from("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
+        let absent_word_hash =
+            String::from("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
         let cracker = HashCracker::new("".to_string(), absent_word_hash);
         if let Ok(word) = cracker.crack_hash(rainbow_table) {
             panic!(
@@ -357,47 +355,3 @@ mod hash_cracker_tests {
         assert_eq!(return_code, 0);
     }
 }
-
-// pub mod crack_hash {
-//     use crate::{cli, hasher, reader};
-
-//     const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: i32 = 3;
-
-//     fn crack_hash<'a>(
-//         hash: &String,
-//         rainbow_table: &'a Vec<hasher::WordHash>,
-//     ) -> Result<&'a String, ()> {
-//         for wordhash in rainbow_table {
-//             if &wordhash.hash == hash {
-//                 return Ok(&wordhash.word);
-//             }
-//         }
-//         Err(())
-//     }
-
-//     pub fn run(crack_hash_options: cli::CrackHashOptions) -> i32 {
-//         // Read words from file
-//         let rainbow_table_file_path = crack_hash_options.rainbow_table_file_path;
-//         let read_words = match reader::read_words(&rainbow_table_file_path) {
-//             Ok(result) => result,
-//             Err(e) => {
-//                 eprintln!("{}", e);
-//                 return reader::FILE_OPERATION_ERROR;
-//             }
-//         };
-//         let rainbow_table = match hasher::deserialize_hashes(read_words) {
-//             Ok(hashes) => hashes,
-//             Err(e) => {
-//                 eprintln!("{}", e);
-//                 return CRACK_HASH_RUNTIME_ERROR_EXIT_CODE;
-//             }
-//         };
-//         match crack_hash(&crack_hash_options.hash, &rainbow_table) {
-//             Ok(cracked_word) => println!("Hash Cracked! The word is: {}", cracked_word),
-//             Err(_) => println!("Sorry, hash not found in the rainbow table!"),
-//         };
-//         0
-//     }
-
-    
-// }
