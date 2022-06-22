@@ -2,7 +2,7 @@ use sha2::{Digest, Sha256};
 
 pub const HASH_DELIMITER: &str = ":";
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct WordHash {
     pub word: String,
     pub hash: String,

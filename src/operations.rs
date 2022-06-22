@@ -5,18 +5,16 @@ use std::{fs, path};
 
 const UNKNOWN_ERROR_MSG: &str = "An unknown error occurred";
 const UNKNOWN_ERROR_EXIT_CODE: i32 = 10;
+const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: i32 = 3;
 const INPUT_READ_ERROR: i32 = 4;
-
-fn do_nothing() -> i32 {
-    return 5;
-}
 
 pub fn select_run(mut program_options: ProgramOptions) -> i32 {
     match program_options.operation {
         Commands::GenerateTable { .. } => {
             let gen_table_opts = program_options.get_generate_table_options();
             match gen_table_opts {
-                Some(_opts) => do_nothing(),
+                // TODO: Change this!
+                Some(_opts) => 5,
                 None => {
                     // We should not be entering this loop, since clap already parses and confirms
                     // that the required arguments are passed to the program
@@ -28,7 +26,7 @@ pub fn select_run(mut program_options: ProgramOptions) -> i32 {
         Commands::CrackHash { .. } => {
             let crack_hash_opts = program_options.get_crack_hash_options();
             match crack_hash_opts {
-                Some(opts) => crack_hash::run(opts),
+                Some(_opts) => 5,
                 None => {
                     // We should not be entering this loop, since clap already parses and confirms
                     // that the required arguments are passed to the program
@@ -125,9 +123,55 @@ impl Operator for RainbowTableGenerator {
     }
 }
 
+pub struct HashCracker {
+    rainbow_table_file_path: String,
+    hash: String,
+}
+
+impl HashCracker {
+    pub fn new(rainbow_table_file_path: String, hash: String) -> HashCracker {
+        HashCracker {
+            rainbow_table_file_path, hash
+        }
+    }
+
+    fn crack_hash(&self, rainbow_table: Vec<hasher::WordHash>,) -> Result<String, ()> {
+        for wordhash in rainbow_table {
+            if &wordhash.hash == &self.hash {
+                return Ok(wordhash.word);
+            }
+        }
+        Err(())
+    }
+}
+
+impl Operator for HashCracker {
+    fn run(&self) -> i32 {
+        // Read words from file
+        let read_words = match reader::read_words(&self.rainbow_table_file_path) {
+            Ok(result) => result,
+            Err(e) => {
+                eprintln!("{}", e);
+                return reader::FILE_OPERATION_ERROR;
+            }
+        };
+        let rainbow_table = match hasher::deserialize_hashes(read_words) {
+            Ok(hashes) => hashes,
+            Err(e) => {
+                eprintln!("{}", e);
+                return CRACK_HASH_RUNTIME_ERROR_EXIT_CODE;
+            }
+        };
+        match &self.crack_hash(rainbow_table) {
+            Ok(cracked_word) => println!("Hash Cracked! The word is: {}", cracked_word),
+            Err(_) => println!("Sorry, hash not found in the rainbow table!"),
+        };
+        0
+    }
+}
 
 #[cfg(test)]
-mod tests {
+mod rainbow_table_generator_tests {
     use super::*;
     use crate::hasher::{serialize_hashes, HASH_DELIMITER};
     use crate::test_utils;
@@ -146,8 +190,8 @@ mod tests {
             "salad".to_string(),
         ];
         let serialized_hashes = serialize_hashes(words);
-
-        let operator = RainbowTableGenerator::new("", &temp_file_handler.temp_file_path);
+        let temp_file_path = String::from(&temp_file_handler.temp_file_path);
+        let operator = RainbowTableGenerator::new("".to_string(), temp_file_path);
         let input = b"y\n";
         // https://stackoverflow.com/questions/28370126/how-can-i-test-stdin-and-stdout
         operator.write_hashes_to_file(
@@ -206,7 +250,8 @@ mod tests {
 
         let words = vec!["potato".to_string()];
         let serialized_hashes = serialize_hashes(words);
-        let operator = RainbowTableGenerator::new("", &temp_file_handler.temp_file_path);
+        let temp_file_path = String::from(&temp_file_handler.temp_file_path);
+        let operator = RainbowTableGenerator::new("".to_string(), temp_file_path);
         let input = b"n\n";
         operator.write_hashes_to_file(
             &input[..],
@@ -227,135 +272,132 @@ mod tests {
     }
 }
 
-pub mod crack_hash {
-    use crate::{cli, hasher, reader};
+#[cfg(test)]
+mod hash_cracker_tests {
+    use super::*;
+    use crate::hasher::WordHash;
+    use crate::test_utils;
+    use hasher::HASH_DELIMITER;
+    use std::io::{BufWriter, Write};
 
-    const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: i32 = 3;
+    #[test]
+    fn test_crack_hash() {
+        let expected_hash =
+            "c10c7396898976bb8c95966eef6b45c81f66be86cdea5c593ae5cba1026cbbb5".to_string();
+        let expected_word = "malenia".to_string();
+        let rainbow_table = vec![
+            WordHash {
+                hash: "1b8c5c045da33a8545e741e5095d8b96296d84ce1ea18a5918518e2a9c8eca98"
+                    .to_string(),
+                word: "uchigatana".to_string(),
+            },
+            WordHash {
+                hash: expected_hash.clone(),
+                word: expected_word.clone(),
+            },
+        ];
 
-    fn crack_hash<'a>(
-        hash: &String,
-        rainbow_table: &'a Vec<hasher::WordHash>,
-    ) -> Result<&'a String, ()> {
-        for wordhash in rainbow_table {
-            if &wordhash.hash == hash {
-                return Ok(&wordhash.word);
-            }
+        // Test that expected cracking happens
+        let cracker = HashCracker::new("".to_string(), expected_hash);
+        match cracker.crack_hash(rainbow_table.to_vec()) {
+            Ok(word) => assert_eq!(*word, expected_word),
+            Err(_) => panic!("Failed to crack expected word {}", expected_word),
+        };
+
+        // Test that Err is returned when hash is not present in rainbow table
+        let absent_word_hash = String::from("9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08");
+        let cracker = HashCracker::new("".to_string(), absent_word_hash);
+        if let Ok(word) = cracker.crack_hash(rainbow_table) {
+            panic!(
+                "Word was cracked even though hash was not in rainbow table. Got: {}",
+                word
+            );
         }
-        Err(())
     }
 
-    pub fn run(crack_hash_options: cli::CrackHashOptions) -> i32 {
-        // Read words from file
-        let rainbow_table_file_path = crack_hash_options.rainbow_table_file_path;
-        let read_words = match reader::read_words(&rainbow_table_file_path) {
-            Ok(result) => result,
-            Err(e) => {
-                eprintln!("{}", e);
-                return reader::FILE_OPERATION_ERROR;
-            }
-        };
-        let rainbow_table = match hasher::deserialize_hashes(read_words) {
-            Ok(hashes) => hashes,
-            Err(e) => {
-                eprintln!("{}", e);
-                return CRACK_HASH_RUNTIME_ERROR_EXIT_CODE;
-            }
-        };
-        match crack_hash(&crack_hash_options.hash, &rainbow_table) {
-            Ok(cracked_word) => println!("Hash Cracked! The word is: {}", cracked_word),
-            Err(_) => println!("Sorry, hash not found in the rainbow table!"),
-        };
-        0
-    }
+    #[test]
+    fn test_run() {
+        let expected_word = "gitlab";
+        let expected_hash = "9d96d9d5b1addd7e7e6119a23b1e5b5f68545312bfecb21d1cdc6af22b8628b8";
+        let wordlist_lines = vec![
+            format!(
+                "hashicorp{}fe64108583908cdaeacb766f4e1c26977727ece6c44dd901ab1f511c32e22dc0",
+                HASH_DELIMITER
+            ),
+            format!(
+                "pulumi{}fbe2a04069387628783a3f90b947236e6ff8b1c099e710871356a6381a4e20b2",
+                HASH_DELIMITER
+            ),
+            format!("{}{}{}", expected_word, HASH_DELIMITER, expected_hash),
+        ];
 
-    #[cfg(test)]
-    mod tests {
-        use super::*;
-        use crate::hasher::WordHash;
-        use crate::test_utils;
-        use cli::CrackHashOptions;
-        use hasher::HASH_DELIMITER;
-        use std::io::{BufWriter, Write};
-
-        #[test]
-        fn test_crack_hash() {
-            let expected_hash =
-                "c10c7396898976bb8c95966eef6b45c81f66be86cdea5c593ae5cba1026cbbb5".to_string();
-            let expected_word = "malenia".to_string();
-            let rainbow_table = vec![
-                WordHash {
-                    hash: "1b8c5c045da33a8545e741e5095d8b96296d84ce1ea18a5918518e2a9c8eca98"
-                        .to_string(),
-                    word: "uchigatana".to_string(),
-                },
-                WordHash {
-                    hash: expected_hash.clone(),
-                    word: expected_word.clone(),
-                },
-            ];
-
-            // Test that expected cracking happens
-            match crack_hash(&expected_hash, &rainbow_table) {
-                Ok(word) => assert_eq!(*word, expected_word),
-                Err(_) => panic!("Failed to crack expected word {}", expected_word),
-            };
-
-            // Test that Err is returned when hash is not present in rainbow table
-            let absent_word = String::from("test");
-            if let Ok(word) = crack_hash(&absent_word, &rainbow_table) {
-                panic!(
-                    "Word was cracked even though hash was not in rainbow table. Got: {}",
-                    word
-                );
+        // Write wordlist to file
+        let temp_file_handler = test_utils::TempFileHandler::new();
+        let file = temp_file_handler.get_file_object(test_utils::FileMode::Write);
+        let mut writer = BufWriter::new(file);
+        for line in wordlist_lines {
+            if let Err(e) = writer.write(line.as_bytes()) {
+                panic!("{}", e);
             }
         }
 
-        #[test]
-        fn test_run() {
-            let expected_word = "gitlab";
-            let expected_hash = "9d96d9d5b1addd7e7e6119a23b1e5b5f68545312bfecb21d1cdc6af22b8628b8";
-            let wordlist_lines = vec![
-                format!(
-                    "hashicorp{}fe64108583908cdaeacb766f4e1c26977727ece6c44dd901ab1f511c32e22dc0",
-                    HASH_DELIMITER
-                ),
-                format!(
-                    "pulumi{}fbe2a04069387628783a3f90b947236e6ff8b1c099e710871356a6381a4e20b2",
-                    HASH_DELIMITER
-                ),
-                format!("{}{}{}", expected_word, HASH_DELIMITER, expected_hash),
-            ];
+        let temp_file_path = temp_file_handler.temp_file_path.clone();
+        let cracker = HashCracker::new(temp_file_path, expected_hash.to_string());
 
-            // Write wordlist to file
-            let temp_file_handler = test_utils::TempFileHandler::new();
-            let file = temp_file_handler.get_file_object(test_utils::FileMode::Write);
-            let mut writer = BufWriter::new(file);
-            for line in wordlist_lines {
-                if let Err(e) = writer.write(line.as_bytes()) {
-                    panic!("{}", e);
-                }
-            }
+        let return_code = cracker.run();
+        assert_eq!(return_code, 0);
 
-            let temp_file_path = temp_file_handler.temp_file_path.clone();
-            let options = CrackHashOptions {
-                hash: expected_hash.to_string(),
-                rainbow_table_file_path: temp_file_path,
-            };
-
-            let return_code = run(options);
-            assert_eq!(return_code, 0);
-
-            // Test that return code 0 is returned even when hash is uncracked
-            // Word is "absent"
-            let absent_hash =
-                "5ad38304b535c2987dbd24657c1a11b884984ff600d9f389deb0d4e634fee792".to_string();
-            let temp_file_path = temp_file_handler.temp_file_path.clone();
-            let options = CrackHashOptions {
-                hash: absent_hash,
-                rainbow_table_file_path: temp_file_path,
-            };
-            let return_code = run(options);
-            assert_eq!(return_code, 0);
-        }
+        // Test that return code 0 is returned even when hash is uncracked
+        // Word is "absent"
+        let absent_hash =
+            "5ad38304b535c2987dbd24657c1a11b884984ff600d9f389deb0d4e634fee792".to_string();
+        let temp_file_path = temp_file_handler.temp_file_path.clone();
+        let cracker = HashCracker::new(temp_file_path, absent_hash);
+        let return_code = cracker.run();
+        assert_eq!(return_code, 0);
     }
 }
+
+// pub mod crack_hash {
+//     use crate::{cli, hasher, reader};
+
+//     const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: i32 = 3;
+
+//     fn crack_hash<'a>(
+//         hash: &String,
+//         rainbow_table: &'a Vec<hasher::WordHash>,
+//     ) -> Result<&'a String, ()> {
+//         for wordhash in rainbow_table {
+//             if &wordhash.hash == hash {
+//                 return Ok(&wordhash.word);
+//             }
+//         }
+//         Err(())
+//     }
+
+//     pub fn run(crack_hash_options: cli::CrackHashOptions) -> i32 {
+//         // Read words from file
+//         let rainbow_table_file_path = crack_hash_options.rainbow_table_file_path;
+//         let read_words = match reader::read_words(&rainbow_table_file_path) {
+//             Ok(result) => result,
+//             Err(e) => {
+//                 eprintln!("{}", e);
+//                 return reader::FILE_OPERATION_ERROR;
+//             }
+//         };
+//         let rainbow_table = match hasher::deserialize_hashes(read_words) {
+//             Ok(hashes) => hashes,
+//             Err(e) => {
+//                 eprintln!("{}", e);
+//                 return CRACK_HASH_RUNTIME_ERROR_EXIT_CODE;
+//             }
+//         };
+//         match crack_hash(&crack_hash_options.hash, &rainbow_table) {
+//             Ok(cracked_word) => println!("Hash Cracked! The word is: {}", cracked_word),
+//             Err(_) => println!("Sorry, hash not found in the rainbow table!"),
+//         };
+//         0
+//     }
+
+    
+// }
