@@ -1,8 +1,7 @@
-use rust_rainbowtable::operations;
+use rust_rainbowtable::operations::{HashCracker, RainbowTableGenerator, Operator};
 use std::process::exit;
 
 use clap::{Parser, Subcommand};
-use std::fmt;
 
 const RAINBOW_TABLE_ARG_HELP: &str = "Path to the rainbow table file";
 const WORD_FILE_ARG_HELP: &str = "Path to the word file";
@@ -30,43 +29,17 @@ struct Cli {
     pub command: Commands,
 }
 
-struct GenerateTableOptions {
-    pub word_file_path: String,
-    pub rainbow_table_file_path: String,
-}
-
-impl fmt::Display for GenerateTableOptions {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "word_file: {}, rainbow_table_file: {}",
-            &self.word_file_path, &self.rainbow_table_file_path
-        )
-    }
-}
-
-struct CrackHashOptions {
-    pub hash: String,
-    pub rainbow_table_file_path: String,
-}
-
-impl fmt::Display for CrackHashOptions {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(
-            f,
-            "hash: {}, rainbow_table_file_path: {}",
-            self.hash, self.rainbow_table_file_path
-        )
-    }
-}
 
 fn main() {
-    // let args = Cli::parse();
-    // match args.command {
-    //     Commands::CrackHash { rainbow_table_file_path, hash } => {
-            
-    //     }
-    // }
-    // let exit_code = operations::select_run(program_options);
-    // exit(exit_code);
+    let args = Cli::parse();
+    let operator: Box<dyn Operator> = match args.command {
+        Commands::CrackHash { rainbow_table_file_path, hash } => {
+            Box::new(HashCracker::new(rainbow_table_file_path, hash))
+        },
+        Commands::GenerateTable { rainbow_table_file_path, word_file_path } => {
+            Box::new(RainbowTableGenerator::new(word_file_path, rainbow_table_file_path))
+        }
+    };
+    let exit_code = operator.run();
+    exit(exit_code);
 }
