@@ -24,7 +24,7 @@ jobs:
           then
           git add .
           git commit -m "Format code by CI"
-          git push
+          git push origin HEAD:$GITHUB_HEAD_REF
           fi
 
       - name: Lint code and commit
@@ -37,7 +37,7 @@ jobs:
           then
           git add .
           git commit -m "Lint code by CI"
-          git push
+          git push origin HEAD:$GITHUB_HEAD_REF
           fi
       - name: Check that code can compile
         run: cargo check
