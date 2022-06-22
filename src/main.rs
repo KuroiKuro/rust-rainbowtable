@@ -1,4 +1,4 @@
-use rust_rainbowtable::operations::{HashCracker, RainbowTableGenerator, Operator};
+use rust_rainbowtable::operations::{HashCracker, Operator, RainbowTableGenerator};
 use std::process::exit;
 
 use clap::{Parser, Subcommand};
@@ -29,16 +29,20 @@ struct Cli {
     pub command: Commands,
 }
 
-
 fn main() {
     let args = Cli::parse();
     let operator: Box<dyn Operator> = match args.command {
-        Commands::CrackHash { rainbow_table_file_path, hash } => {
-            Box::new(HashCracker::new(rainbow_table_file_path, hash))
-        },
-        Commands::GenerateTable { rainbow_table_file_path, word_file_path } => {
-            Box::new(RainbowTableGenerator::new(word_file_path, rainbow_table_file_path))
-        }
+        Commands::CrackHash {
+            rainbow_table_file_path,
+            hash,
+        } => Box::new(HashCracker::new(rainbow_table_file_path, hash)),
+        Commands::GenerateTable {
+            rainbow_table_file_path,
+            word_file_path,
+        } => Box::new(RainbowTableGenerator::new(
+            word_file_path,
+            rainbow_table_file_path,
+        )),
     };
     let exit_code = operator.run();
     exit(exit_code);

@@ -5,7 +5,6 @@ use std::{fs, path};
 const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: i32 = 3;
 const INPUT_READ_ERROR: i32 = 4;
 
-
 pub trait Operator {
     fn run(&self) -> i32;
 }
