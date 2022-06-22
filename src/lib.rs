@@ -1,4 +1,3 @@
-pub mod cli;
 pub mod hasher;
 pub mod operations;
 pub mod reader;

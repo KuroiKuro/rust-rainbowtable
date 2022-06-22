@@ -1,42 +1,10 @@
-use crate::cli::{Commands, ProgramOptions};
-use crate::{cli, hasher, reader};
+use crate::{hasher, reader};
 use std::io::{stdin, BufRead, Write};
 use std::{fs, path};
 
-const UNKNOWN_ERROR_MSG: &str = "An unknown error occurred";
-const UNKNOWN_ERROR_EXIT_CODE: i32 = 10;
 const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: i32 = 3;
 const INPUT_READ_ERROR: i32 = 4;
 
-pub fn select_run(mut program_options: ProgramOptions) -> i32 {
-    match program_options.operation {
-        Commands::GenerateTable { .. } => {
-            let gen_table_opts = program_options.get_generate_table_options();
-            match gen_table_opts {
-                // TODO: Change this!
-                Some(_opts) => 5,
-                None => {
-                    // We should not be entering this loop, since clap already parses and confirms
-                    // that the required arguments are passed to the program
-                    eprintln!("{}", UNKNOWN_ERROR_MSG);
-                    UNKNOWN_ERROR_EXIT_CODE
-                }
-            }
-        }
-        Commands::CrackHash { .. } => {
-            let crack_hash_opts = program_options.get_crack_hash_options();
-            match crack_hash_opts {
-                Some(_opts) => 5,
-                None => {
-                    // We should not be entering this loop, since clap already parses and confirms
-                    // that the required arguments are passed to the program
-                    eprintln!("{}", UNKNOWN_ERROR_MSG);
-                    UNKNOWN_ERROR_EXIT_CODE
-                }
-            }
-        }
-    }
-}
 
 pub trait Operator {
     fn run(&self) -> i32;
