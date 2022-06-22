@@ -16,19 +16,24 @@ jobs:
       - uses: actions/checkout@v3
       - name: Format, lint and fix code and commit
         run: |
+          set -x
           cargo fmt
           git config user.name github-actions
           git config user.email github-actions@github.com
+          git branch
+          git fetch
+          git checkout $GITHUB_HEAD_REF
           ANYTHING_TO_COMMIT=$(git status --porcelain | wc -c)
           if [[ ${ANYTHING_TO_COMMIT} -ne 0 ]]
           then
           git add .
           git commit -m "Format code by CI"
+          git pull
           git push origin HEAD:$GITHUB_HEAD_REF
           fi
-
       - name: Lint code and commit
         run: |
+          set -x
           # Fix fixable lints and fail on others
           cargo clippy --fix -- -D warnings
           # Commit lints that were fixed, if all fixable
@@ -37,6 +42,7 @@ jobs:
           then
           git add .
           git commit -m "Lint code by CI"
+          git pull
           git push origin HEAD:$GITHUB_HEAD_REF
           fi
       - name: Check that code can compile
