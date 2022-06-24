@@ -1,9 +1,52 @@
 use crate::{hasher, reader};
 use std::io::{stdin, BufRead, Write};
+use std::sync::mpsc;
+use std::thread;
 use std::{fs, path};
+use itertools::Itertools;
+
 
 const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: i32 = 3;
 const INPUT_READ_ERROR: i32 = 4;
+
+fn calculate_thread_counts<T>(threads: usize, mut vec_to_split: Vec<T>) -> Vec<Vec<T>> {
+    /*
+        Return a vector of Vec<T>, where each Vec<T> has been properly sized into mostly
+        equal sizes. In the event vec_to_split cannot be equally sized into n threads, then
+        starting from the first split, each split will take 1 extra until the remainder is
+        exhausted (probably can phrase this better)
+    */ 
+    // If the number of threads is bigger than the vec to split, then create vectors of
+    // size 1
+    let vec_len = vec_to_split.len();
+    if threads == 1 {
+        return vec![vec_to_split];
+    } 
+
+    if threads >= vec_len {
+        return vec_to_split.into_iter()
+            .map(|item: T| vec![item])
+            .collect::<Vec<Vec<T>>>();
+    }
+
+    let mut chunk_size = vec_len / threads;
+    // The number of threads that need to take 1 extra, so that each thread can handle
+    // one additional item, with the exception of the last thread
+    let remainder = vec_len % threads;
+    if remainder != 0 {
+        chunk_size += 1;
+    }
+    // TODO: Find a more elegant way to write this
+    let return_vec: Vec<Vec<T>> = vec![];
+    for chunk in vec_to_split.chunks_mut(chunk_size) {
+        let mut new_vec = vec![];
+        for item in chunk {
+            new_vec.push(item);
+        }
+        return_vec.push(new_vec);
+    }
+    return_vec
+}
 
 pub trait Operator {
     fn run(&self) -> i32;
@@ -12,13 +55,19 @@ pub trait Operator {
 pub struct RainbowTableGenerator {
     pub word_file_path: String,
     pub rainbow_table_file_path: String,
+    threads: u32,
 }
 
 impl RainbowTableGenerator {
-    pub fn new(word_file_path: String, rainbow_table_file_path: String) -> RainbowTableGenerator {
+    pub fn new(
+        word_file_path: String,
+        rainbow_table_file_path: String,
+        threads: u32,
+    ) -> RainbowTableGenerator {
         RainbowTableGenerator {
             word_file_path,
             rainbow_table_file_path,
+            threads,
         }
     }
 
@@ -66,6 +115,17 @@ impl RainbowTableGenerator {
             Ok(_) => 0,
         }
     }
+
+    // fn get_serialized_hashes(&self, word_vec: Vec<String>) -> Vec<Vec<String>> {
+    //     if self.threads == 1 {
+    //         return vec![hasher::serialize_hashes(word_vec)];
+    //     }
+    //     let threads = self.threads as usize;
+    //     let each_vec_size: usize = word_vec.len() / threads;
+    //     let remainder = word_vec.len() % threads;
+
+    //     let threads = vec![];
+    // }
 }
 
 impl Operator for RainbowTableGenerator {
@@ -141,6 +201,30 @@ impl Operator for HashCracker {
 }
 
 #[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn generate_test_vec(n: usize) -> Vec<String> {
+        let test_string = "hello";
+        (0..n).into_iter()
+            .map(|_| String::from(test_string))
+            .collect::<Vec<String>>()
+    }
+
+    #[test]
+    fn test_calculate_thread_counts() {
+        let sample_vec = generate_test_vec(5);
+        let calculated_vec = calculate_thread_counts(3, sample_vec);
+        // Expected first 2 threads to have size 2, last to have size 1
+        println!("calculated: {:?}", calculated_vec);
+        assert_eq!(calculated_vec[0].len(), 2);
+        assert_eq!(calculated_vec[1].len(), 2);
+        assert_eq!(calculated_vec[2].len(), 1);
+    }
+}
+
+
+#[cfg(test)]
 mod rainbow_table_generator_tests {
     use super::*;
     use crate::hasher::{serialize_hashes, HASH_DELIMITER};
@@ -161,7 +245,7 @@ mod rainbow_table_generator_tests {
         ];
         let serialized_hashes = serialize_hashes(words);
         let temp_file_path = String::from(&temp_file_handler.temp_file_path);
-        let operator = RainbowTableGenerator::new("".to_string(), temp_file_path);
+        let operator = RainbowTableGenerator::new("".to_string(), temp_file_path, 1);
         let input = b"y\n";
         // https://stackoverflow.com/questions/28370126/how-can-i-test-stdin-and-stdout
         operator.write_hashes_to_file(&input[..], serialized_hashes);
@@ -218,7 +302,7 @@ mod rainbow_table_generator_tests {
         let words = vec!["potato".to_string()];
         let serialized_hashes = serialize_hashes(words);
         let temp_file_path = String::from(&temp_file_handler.temp_file_path);
-        let operator = RainbowTableGenerator::new("".to_string(), temp_file_path);
+        let operator = RainbowTableGenerator::new("".to_string(), temp_file_path, 1);
         let input = b"n\n";
         operator.write_hashes_to_file(&input[..], serialized_hashes);
         // File should not be overwritten
