@@ -36,15 +36,12 @@ fn calculate_thread_counts<T>(threads: usize, mut vec_to_split: Vec<T>) -> Vec<V
     if remainder != 0 {
         chunk_size += 1;
     }
-    // TODO: Find a more elegant way to write this
-    let return_vec: Vec<Vec<T>> = vec![];
-    for chunk in vec_to_split.chunks_mut(chunk_size) {
-        let mut new_vec = vec![];
-        for item in chunk {
-            new_vec.push(item);
-        }
-        return_vec.push(new_vec);
-    }
+    // https://stackoverflow.com/questions/66446258/rust-chunks-method-with-owned-values
+    let return_vec: Vec<Vec<T>> = vec_to_split.into_iter()
+        .chunks(chunk_size)
+        .into_iter()
+        .map(|chunk| chunk.collect())
+        .collect();
     return_vec
 }
 
