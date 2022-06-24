@@ -9,6 +9,10 @@ const HASH_ARG_HELP: &str = "Hash to crack";
 const THREADS_ARG_HELP: &str = "Number of threads";
 const DEFAULT_THREAD_COUNT: u32 = 1;
 
+const THREAD_LIMIT: u32 = 500;
+const THREAD_LIMIT_EXCEEDED: &str = "Exceeded maximum number of threads: 500";
+const THREAD_LIMIT_EXCEEDED_EXIT_CODE: i32 = 1;
+
 #[derive(Subcommand)]
 pub enum Commands {
     GenerateTable {
@@ -35,6 +39,16 @@ struct Cli {
 
 fn main() {
     let args = Cli::parse();
+    let threads = match args.threads {
+        Some(threads) => threads,
+        None => DEFAULT_THREAD_COUNT,
+    };
+
+    // Safety feature
+    if threads > THREAD_LIMIT {
+        exit(THREAD_LIMIT_EXCEEDED_EXIT_CODE);
+    }
+
     let operator: Box<dyn Operator> = match args.command {
         Commands::CrackHash {
             rainbow_table_file_path,
@@ -46,12 +60,10 @@ fn main() {
         } => Box::new(RainbowTableGenerator::new(
             word_file_path,
             rainbow_table_file_path,
+            threads,
         )),
     };
-    let _threads = match args.threads {
-        Some(threads) => threads,
-        None => DEFAULT_THREAD_COUNT
-    };
+
     let exit_code = operator.run();
     exit(exit_code);
 }
