@@ -3,16 +3,16 @@ use std::io::{stdin, BufRead, Write};
 use std::sync::mpsc;
 use std::thread;
 use std::{fs, path};
-use itertools::Itertools;
 
 
 const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: i32 = 3;
 const INPUT_READ_ERROR: i32 = 4;
 
-fn calculate_thread_counts<T>(threads: usize, mut vec_to_split: Vec<T>) -> Vec<Vec<T>> {
+fn partition_vec<T>(threads: usize, mut vec_to_split: Vec<T>) -> Vec<Vec<T>> {
     /*
         Return a vector of Vec<T>, where each Vec<T> has been properly sized into mostly
-        equal sizes. In the event vec_to_split cannot be equally sized into n threads, then
+        equal sizes for each thread to handle.
+        In the event vec_to_split cannot be equally sized into n threads, then
         starting from the first split, each split will take 1 extra until the remainder is
         exhausted (probably can phrase this better)
     */ 
@@ -29,19 +29,19 @@ fn calculate_thread_counts<T>(threads: usize, mut vec_to_split: Vec<T>) -> Vec<V
             .collect::<Vec<Vec<T>>>();
     }
 
-    let mut chunk_size = vec_len / threads;
+    let chunk_size = vec_len / threads;
     // The number of threads that need to take 1 extra, so that each thread can handle
     // one additional item, with the exception of the last thread
     let remainder = vec_len % threads;
-    if remainder != 0 {
-        chunk_size += 1;
+    let mut return_vec: Vec<Vec<T>> = vec![];
+    for i in 1..=threads {
+        let mut number_to_take = chunk_size.clone();
+        if i <= remainder {
+            number_to_take += 1;
+        }
+        let chunk: Vec<T> = vec_to_split.drain(0..number_to_take).collect();
+        return_vec.push(chunk);
     }
-    // https://stackoverflow.com/questions/66446258/rust-chunks-method-with-owned-values
-    let return_vec: Vec<Vec<T>> = vec_to_split.into_iter()
-        .chunks(chunk_size)
-        .into_iter()
-        .map(|chunk| chunk.collect())
-        .collect();
     return_vec
 }
 
@@ -114,14 +114,7 @@ impl RainbowTableGenerator {
     }
 
     // fn get_serialized_hashes(&self, word_vec: Vec<String>) -> Vec<Vec<String>> {
-    //     if self.threads == 1 {
-    //         return vec![hasher::serialize_hashes(word_vec)];
-    //     }
-    //     let threads = self.threads as usize;
-    //     let each_vec_size: usize = word_vec.len() / threads;
-    //     let remainder = word_vec.len() % threads;
-
-    //     let threads = vec![];
+    //     let partitions = partition_vec(threads, vec_to_split)
     // }
 }
 
@@ -209,14 +202,43 @@ mod tests {
     }
 
     #[test]
-    fn test_calculate_thread_counts() {
+    fn test_partition_vec() {
         let sample_vec = generate_test_vec(5);
-        let calculated_vec = calculate_thread_counts(3, sample_vec);
-        // Expected first 2 threads to have size 2, last to have size 1
-        println!("calculated: {:?}", calculated_vec);
+        let calculated_vec = partition_vec(3, sample_vec);
+        // Expected first 2 partitions to have size 2, last to have size 1
+        assert_eq!(calculated_vec.len(), 3);
         assert_eq!(calculated_vec[0].len(), 2);
         assert_eq!(calculated_vec[1].len(), 2);
         assert_eq!(calculated_vec[2].len(), 1);
+
+        let sample_vec = generate_test_vec(17);
+        let calculated_vec = partition_vec(7, sample_vec);
+        // Expected first 3 partitions to have size 3, rest to have size 2
+        println!("{:?}", calculated_vec);
+        assert_eq!(calculated_vec.len(), 7);
+        assert_eq!(calculated_vec[0].len(), 3);
+        assert_eq!(calculated_vec[1].len(), 3);
+        assert_eq!(calculated_vec[2].len(), 3);
+        assert_eq!(calculated_vec[3].len(), 2);
+        assert_eq!(calculated_vec[4].len(), 2);
+        assert_eq!(calculated_vec[5].len(), 2);
+        assert_eq!(calculated_vec[6].len(), 2);
+
+        let sample_vec = generate_test_vec(12);
+        let calculated_vec = partition_vec(4, sample_vec);
+        // Expected all 4 partitions to have size 3
+        println!("calculated: {:?}", calculated_vec);
+        assert_eq!(calculated_vec.len(), 4);
+        assert_eq!(calculated_vec[0].len(), 3);
+        assert_eq!(calculated_vec[1].len(), 3);
+        assert_eq!(calculated_vec[2].len(), 3);
+        assert_eq!(calculated_vec[3].len(), 3);
+
+        let sample_vec = generate_test_vec(9);
+        let calculated_vec = partition_vec(1, sample_vec);
+        // Expected 1 partition with size 9
+        assert_eq!(calculated_vec.len(), 1);
+        assert_eq!(calculated_vec[0].len(), 9);
     }
 }
 
