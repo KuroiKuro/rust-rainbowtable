@@ -229,16 +229,23 @@ mod tests {
         // Expected all 4 partitions to have size 3
         println!("calculated: {:?}", calculated_vec);
         assert_eq!(calculated_vec.len(), 4);
-        assert_eq!(calculated_vec[0].len(), 3);
-        assert_eq!(calculated_vec[1].len(), 3);
-        assert_eq!(calculated_vec[2].len(), 3);
-        assert_eq!(calculated_vec[3].len(), 3);
+        for i in calculated_vec {
+            assert_eq!(i.len(), 3);
+        }
 
         let sample_vec = generate_test_vec(9);
         let calculated_vec = partition_vec(1, sample_vec);
         // Expected 1 partition with size 9
         assert_eq!(calculated_vec.len(), 1);
         assert_eq!(calculated_vec[0].len(), 9);
+
+        let sample_vec = generate_test_vec(4);
+        let calculated_vec = partition_vec(4, sample_vec);
+        // Expected 4 partition with size 1
+        assert_eq!(calculated_vec.len(), 4);
+        for i in calculated_vec {
+            assert_eq!(i.len(), 1);
+        }
     }
 }
 
