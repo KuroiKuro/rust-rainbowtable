@@ -8,7 +8,7 @@ use std::{fs, path};
 const CRACK_HASH_RUNTIME_ERROR_EXIT_CODE: i32 = 3;
 const INPUT_READ_ERROR: i32 = 4;
 
-fn partition_vec<T>(threads: usize, mut vec_to_split: Vec<T>) -> Vec<Vec<T>> {
+fn partition_vec<T>(threads: &usize, mut vec_to_split: Vec<T>) -> Vec<Vec<T>> {
     /*
         Return a vector of Vec<T>, where each Vec<T> has been properly sized into mostly
         equal sizes for each thread to handle.
@@ -19,11 +19,11 @@ fn partition_vec<T>(threads: usize, mut vec_to_split: Vec<T>) -> Vec<Vec<T>> {
     // If the number of threads is bigger than the vec to split, then create vectors of
     // size 1
     let vec_len = vec_to_split.len();
-    if threads == 1 {
+    if *threads == 1 {
         return vec![vec_to_split];
     } 
 
-    if threads >= vec_len {
+    if *threads >= vec_len {
         return vec_to_split.into_iter()
             .map(|item: T| vec![item])
             .collect::<Vec<Vec<T>>>();
@@ -34,7 +34,7 @@ fn partition_vec<T>(threads: usize, mut vec_to_split: Vec<T>) -> Vec<Vec<T>> {
     // one additional item, with the exception of the last thread
     let remainder = vec_len % threads;
     let mut return_vec: Vec<Vec<T>> = vec![];
-    for i in 1..=threads {
+    for i in 1..=*threads {
         let mut number_to_take = chunk_size.clone();
         if i <= remainder {
             number_to_take += 1;
@@ -52,7 +52,7 @@ pub trait Operator {
 pub struct RainbowTableGenerator {
     pub word_file_path: String,
     pub rainbow_table_file_path: String,
-    threads: u32,
+    threads: usize,
 }
 
 impl RainbowTableGenerator {
@@ -113,9 +113,6 @@ impl RainbowTableGenerator {
         }
     }
 
-    // fn get_serialized_hashes(&self, word_vec: Vec<String>) -> Vec<Vec<String>> {
-    //     let partitions = partition_vec(threads, vec_to_split)
-    // }
 }
 
 impl Operator for RainbowTableGenerator {
@@ -129,6 +126,8 @@ impl Operator for RainbowTableGenerator {
         };
 
         println!("Generating words...");
+        // Get partitioned word list
+        let partitioned_words = partition_vec(&self.threads, vec_to_split)
         let serialized_hashes = hasher::serialize_hashes(words);
         println!("Generated {} words", serialized_hashes.len());
         println!(
