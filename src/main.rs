@@ -34,7 +34,7 @@ struct Cli {
     #[clap(subcommand)]
     pub command: Commands,
     #[clap(short = 't', long = "threads", help = THREADS_ARG_HELP)]
-    pub threads: Option<u32>,
+    pub threads: Option<usize>,
 }
 
 fn main() {
